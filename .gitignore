@@ -10,6 +10,10 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+warehouse/*.duckdb
+mlruns.db
+mlruns/
+reports/metrics.json
 
 .pytest_cache/
 .ruff_cache/
