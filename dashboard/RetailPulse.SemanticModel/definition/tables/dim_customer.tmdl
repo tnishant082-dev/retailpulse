@@ -1,30 +1,47 @@
+/// One row per customer id
 table dim_customer
+	lineageTag: 626aa312-dbf9-56dc-a07f-364d5a2cc135
 
 	column customer_id
 		dataType: int64
+		formatString: 0
+		lineageTag: de01a79d-ab1b-52cc-9336-1c6f129b34df
 		summarizeBy: none
 		sourceColumn: customer_id
 
+		annotation SummarizationSetBy = Automatic
+
 	column first_purchase_ts
 		dataType: dateTime
+		formatString: yyyy-mm-dd hh:nn
+		lineageTag: 57800b04-77b2-5a4f-8fe4-2c585ae9f4ad
 		summarizeBy: none
 		sourceColumn: first_purchase_ts
 
+		annotation SummarizationSetBy = Automatic
+
 	column last_purchase_ts
 		dataType: dateTime
+		formatString: yyyy-mm-dd hh:nn
+		lineageTag: 25fb4c6c-e8b9-5c15-b0bc-5f4596ef3abf
 		summarizeBy: none
 		sourceColumn: last_purchase_ts
 
+		annotation SummarizationSetBy = Automatic
+
 	column country
 		dataType: string
+		lineageTag: f06b92a2-7169-56d1-9d9d-d14bf5c41043
 		summarizeBy: none
 		sourceColumn: country
+
+		annotation SummarizationSetBy = Automatic
 
 	partition dim_customer = m
 		mode: import
 		source =
-			let
-				Source = Parquet.Document(File.Contents(DataFolder & "\\dim_customer.parquet")
-				)
-			in
-				Source
+				let
+				    Source = Parquet.Document ( File.Contents ( DataFolder & "\dim_customer.parquet" ) ),
+				    Typed = Table.TransformColumnTypes ( Source, {{"customer_id", Int64.Type}, {"first_purchase_ts", type datetime}, {"last_purchase_ts", type datetime}, {"country", type text}} )
+				in
+				    Typed

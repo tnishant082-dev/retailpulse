@@ -1,20 +1,39 @@
+/// Predicted 6 month CLV per customer
 table clv_scores
+	lineageTag: 46a6762d-3e59-5b23-9db3-b0bfcd8d2fc7
 
 	column customer_id
 		dataType: int64
+		formatString: 0
+		lineageTag: fb501ba0-14c0-550d-8472-48e3add02e61
 		summarizeBy: none
 		sourceColumn: customer_id
 
+		annotation SummarizationSetBy = Automatic
+
 	column clv_6m_pred
 		dataType: double
+		formatString: #,0.00
+		lineageTag: 6d7df2d6-f3bc-59fd-9b85-97c8989b334a
 		summarizeBy: none
 		sourceColumn: clv_6m_pred
+
+		annotation SummarizationSetBy = Automatic
+
+	column clv_band
+		dataType: string
+		lineageTag: cfb48604-d580-5e10-883e-50edc0e7918a
+		summarizeBy: none
+		sourceColumn: clv_band
+
+		annotation SummarizationSetBy = Automatic
 
 	partition clv_scores = m
 		mode: import
 		source =
-			let
-				Source = Parquet.Document(File.Contents(DataFolder & "\\clv_scores.parquet")
-				)
-			in
-				Source
+				let
+				    Source = Parquet.Document ( File.Contents ( DataFolder & "\clv_scores.parquet" ) ),
+				    Typed = Table.TransformColumnTypes ( Source, {{"customer_id", Int64.Type}, {"clv_6m_pred", type number}} ),
+				    X0 = Table.AddColumn ( Typed, "clv_band", each if [clv_6m_pred] < 250 then "1. <250" else if [clv_6m_pred] < 500 then "2. 250-500" else if [clv_6m_pred] < 1000 then "3. 500-1k" else if [clv_6m_pred] < 5000 then "4. 1k-5k" else "5. 5k+", type text )
+				in
+				    X0

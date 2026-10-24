@@ -1,4 +1,5 @@
-/// Local folder containing `data/powerbi/*.parquet` exports
-expression DataFolder = "C:\Users\nishant\retailpulse\data\powerbi" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+/// Full path to the repo's data\powerbi folder
+expression DataFolder = "C:\\Users\\nishant\\retailpulse\\data\\powerbi" meta [IsParameterQuery = true, Type = "Text", IsParameterQueryRequired = true]
+	lineageTag: db7d5a24-26c4-545f-96c8-4b1b44046a03
 
- annotation PBI_ResultType = Text
+	annotation PBI_ResultType = Text

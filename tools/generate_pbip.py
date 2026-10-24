@@ -1,869 +1,323 @@
+"""Write the Power BI project (PBIP) under dashboard/.
+
+Semantic model (TMDL) and report pages (PBIR json) live in one script so the
+names stay in sync. Ids and lineage tags are uuid5, so reruns give the same
+files. Page insight text is computed from data/powerbi with DuckDB.
+Open dashboard/RetailPulse.pbip in Power BI Desktop.
+"""
+
 from __future__ import annotations
 
-import hashlib
 import json
-from dataclasses import dataclass
+import shutil
+import uuid
 from pathlib import Path
 
 import duckdb
 
-
-@dataclass(frozen=True)
-class Visual:
-    name: str
-    kind: str
-    x: int
-    y: int
-    w: int
-    h: int
-    z: int
-    tab: int
-    definition: dict
+ROOT = Path(__file__).resolve().parents[1]
+DASH = ROOT / "dashboard"
+NAME = "RetailPulse"
+PBI_DATA = ROOT / "data" / "powerbi"
+NS = uuid.UUID("3c1d2b7e-8f0a-4e55-9a61-2b7c0d4e5f60")
 
 
-def _hex20(s: str) -> str:
-    return hashlib.md5(s.encode("utf-8")).hexdigest()[:20]
+def tag(*parts: str) -> str:
+    return str(uuid.uuid5(NS, "/".join(parts)))
 
 
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[1]
-
-
-PBIR_SCHEMA_PAGES = "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/pagesMetadata/1.0.0/schema.json"
-PBIR_SCHEMA_REPORT = "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/report/1.2.0/schema.json"
-PBIR_SCHEMA_PAGE = "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/1.3.0/schema.json"
-PBIR_SCHEMA_VISUAL = "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.4.0/schema.json"
-
-
-def _read_json(path: Path) -> dict:
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def _insights_text(repo_root: Path) -> str:
-    p = repo_root / "reports" / "insights.md"
-    if not p.exists():
-        return "Run tools/compute_insights.py to generate real insights."
-    return p.read_text(encoding="utf-8").strip()
-
-
-def _proj_column(table: str, column: str) -> dict:
-    return {
-        "field": {
-            "Column": {
-                "Expression": {"SourceRef": {"Entity": table}},
-                "Property": column,
-            }
-        },
-        "queryRef": f"{table}.{column}",
-        "nativeQueryRef": column,
-    }
-
-
-def _proj_measure(table: str, measure: str) -> dict:
-    return {
-        "field": {
-            "Measure": {
-                "Expression": {"SourceRef": {"Entity": table}},
-                "Property": measure,
-            }
-        },
-        "queryRef": f"{table}.{measure}",
-        "nativeQueryRef": measure,
-    }
-
-
-def _textbox_visual(
-    name: str,
-    *,
-    text: str,
-    x: int,
-    y: int,
-    w: int,
-    h: int,
-    z: int,
-    tab: int,
-) -> dict:
-    return {
-        "$schema": PBIR_SCHEMA_VISUAL,
-        "name": name,
-        "position": {"x": x, "y": y, "z": z, "width": w, "height": h, "tabOrder": tab},
-        "visual": {
-            "visualType": "textbox",
-            "objects": {
-                "general": [
-                    {
-                        "properties": {
-                            "paragraphs": [
-                                {
-                                    "textRuns": [
-                                        {
-                                            "value": text,
-                                            "textStyle": {
-                                                "fontFamily": "Segoe UI",
-                                                "fontSize": "12pt",
-                                            },
-                                        }
-                                    ],
-                                    "horizontalTextAlignment": "left",
-                                }
-                            ]
-                        }
-                    }
-                ]
-            },
-            "visualContainerObjects": {
-                "background": [{"properties": {"show": {"expr": {"Literal": {"Value": "false"}}}}}],
-                "border": [{"properties": {"show": {"expr": {"Literal": {"Value": "false"}}}}}],
-                "title": [{"properties": {"show": {"expr": {"Literal": {"Value": "false"}}}}}],
-            },
-        },
-    }
-
-
-def _card_visual(
-    name: str,
-    *,
-    measure: str,
-    x: int,
-    y: int,
-    w: int,
-    h: int,
-    z: int,
-    tab: int,
-) -> dict:
-    return {
-        "$schema": PBIR_SCHEMA_VISUAL,
-        "name": name,
-        "position": {"x": x, "y": y, "z": z, "width": w, "height": h, "tabOrder": tab},
-        "visual": {
-            "visualType": "card",
-            "query": {
-                "queryState": {"Values": {"projections": [_proj_measure("_Measures", measure)]}}
-            },
-            "drillFilterOtherVisuals": True,
-        },
-    }
-
-
-def _slicer_visual(
-    name: str,
-    *,
-    table: str,
-    column: str,
-    x: int,
-    y: int,
-    w: int,
-    h: int,
-    z: int,
-    tab: int,
-) -> dict:
-    return {
-        "$schema": PBIR_SCHEMA_VISUAL,
-        "name": name,
-        "position": {"x": x, "y": y, "z": z, "width": w, "height": h, "tabOrder": tab},
-        "visual": {
-            "visualType": "slicer",
-            "query": {"queryState": {"Values": {"projections": [_proj_column(table, column)]}}},
-            "drillFilterOtherVisuals": True,
-        },
-    }
-
-
-def _line_visual(
-    name: str,
-    *,
-    axis_table: str,
-    axis_col: str,
-    measure: str,
-    x: int,
-    y: int,
-    w: int,
-    h: int,
-    z: int,
-    tab: int,
-) -> dict:
-    return {
-        "$schema": PBIR_SCHEMA_VISUAL,
-        "name": name,
-        "position": {"x": x, "y": y, "z": z, "width": w, "height": h, "tabOrder": tab},
-        "visual": {
-            "visualType": "lineChart",
-            "query": {
-                "queryState": {
-                    "Category": {"projections": [_proj_column(axis_table, axis_col)]},
-                    "Y": {"projections": [_proj_measure("_Measures", measure)]},
-                }
-            },
-            "drillFilterOtherVisuals": True,
-        },
-    }
-
-
-def _bar_visual(
-    name: str,
-    *,
-    cat_table: str,
-    cat_col: str,
-    measure: str,
-    x: int,
-    y: int,
-    w: int,
-    h: int,
-    z: int,
-    tab: int,
-) -> dict:
-    return {
-        "$schema": PBIR_SCHEMA_VISUAL,
-        "name": name,
-        "position": {"x": x, "y": y, "z": z, "width": w, "height": h, "tabOrder": tab},
-        "visual": {
-            "visualType": "clusteredBarChart",
-            "query": {
-                "queryState": {
-                    "Category": {"projections": [_proj_column(cat_table, cat_col)]},
-                    "Y": {"projections": [_proj_measure("_Measures", measure)]},
-                }
-            },
-            "drillFilterOtherVisuals": True,
-        },
-    }
-
-
-def _table_visual(
-    name: str,
-    *,
-    columns: list[tuple[str, str]],
-    measures: list[str],
-    x: int,
-    y: int,
-    w: int,
-    h: int,
-    z: int,
-    tab: int,
-) -> dict:
-    projs = [_proj_column(t, c) for (t, c) in columns] + [
-        _proj_measure("_Measures", m) for m in measures
-    ]
-    return {
-        "$schema": PBIR_SCHEMA_VISUAL,
-        "name": name,
-        "position": {"x": x, "y": y, "z": z, "width": w, "height": h, "tabOrder": tab},
-        "visual": {
-            "visualType": "tableEx",
-            "query": {"queryState": {"Values": {"projections": projs}}},
-            "drillFilterOtherVisuals": True,
-        },
-    }
-
-
-def _write(path: Path, text: str) -> None:
+def write(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
+    path.write_text(text, encoding="utf-8", newline="\n")
 
 
-def _write_json(path: Path, obj: dict) -> None:
-    _write(path, json.dumps(obj, indent=1))
+def wjson(path: Path, obj: dict) -> None:
+    write(path, json.dumps(obj, indent=2, ensure_ascii=False) + "\n")
 
 
-def _duckdb_schema(parquet_path: Path) -> list[tuple[str, str]]:
-    con = duckdb.connect()
-    try:
-        rows = con.execute(
-            f"DESCRIBE SELECT * FROM read_parquet('{parquet_path.as_posix()}')"
-        ).fetchall()
-        return [(r[0], r[1]) for r in rows]
-    finally:
-        con.close()
+# ---------------------------------------------------------------- model
+
+TABLES = {
+    "fact_sales": "Sales lines (non-cancelled invoices)",
+    "fact_returns": "Cancelled invoice lines (C-prefixed invoices)",
+    "dim_date": "Trading days 2009-12-01 to 2011-12-09",
+    "dim_customer": "One row per customer id",
+    "dim_product": "One row per stock code (trimmed, case-insensitive)",
+    "dim_country": "Countries",
+    "mart_cohort_retention": "Monthly acquisition cohorts",
+    "mart_product_abc": "ABC class per stock code by revenue",
+    "mart_basket_pairs": "Product pairs bought on the same invoice",
+    "rfm_segments": "RFM scores and segment per customer",
+    "churn_scores": "Churn probability per customer, joined with RFM and CLV",
+    "clv_scores": "Predicted 6 month CLV per customer",
+    "forecast": "Weekly units: actual vs baseline vs model (holdout weeks)",
+}
+
+HIDDEN = {"date_key"}
+
+DTYPE = {
+    "VARCHAR": ("string", None, "type text"),
+    "INTEGER": ("int64", "0", "Int64.Type"),
+    "BIGINT": ("int64", "0", "Int64.Type"),
+    "DOUBLE": ("double", "#,0.00", "type number"),
+    "DATE": ("dateTime", "yyyy-mm-dd", "type date"),
+    "TIMESTAMP": ("dateTime", "yyyy-mm-dd hh:nn", "type datetime"),
+}
+
+# extra M steps per table: (column, duckdb-like type, M expression)
+EXTRA = {
+    "dim_date": [
+        ("month_start", "DATE", "Date.StartOfMonth([date])"),
+        ("year_month", "VARCHAR", 'Date.ToText([date], "yyyy-MM")'),
+        ("month_name", "VARCHAR", 'Date.ToText([date], "MMM")'),
+        ("week_start", "DATE", "Date.StartOfWeek([date], Day.Monday)"),
+        ("weekday_name", "VARCHAR", 'Date.ToText([date], "ddd")'),
+    ],
+    "dim_product": [
+        ("product", "VARCHAR", 'if [description] = null then [stock_code] else [stock_code] & " " & [description]'),
+    ],
+    "mart_cohort_retention": [
+        ("cohort", "VARCHAR", 'Date.ToText([cohort_month], "yyyy-MM")'),
+    ],
+    "mart_basket_pairs": [
+        ("pair", "VARCHAR", '[product_a] & " + " & [product_b]'),
+    ],
+    "churn_scores": [
+        ("risk_band", "VARCHAR", 'if [churn_proba] >= 0.7 then "High (0.7+)" else if [churn_proba] >= 0.4 then "Medium (0.4-0.7)" else "Low (<0.4)"'),
+        ("proba_bucket", "VARCHAR", 'Number.ToText(Number.RoundDown([churn_proba] * 10) / 10, "0.0")'),
+    ],
+    "clv_scores": [
+        ("clv_band", "VARCHAR", 'if [clv_6m_pred] < 250 then "1. <250" else if [clv_6m_pred] < 500 then "2. 250-500" '
+         'else if [clv_6m_pred] < 1000 then "3. 500-1k" else if [clv_6m_pred] < 5000 then "4. 1k-5k" else "5. 5k+"'),
+    ],
+}
+
+SORT_BY = {
+    ("dim_date", "month_name"): "month",
+    ("dim_date", "weekday_name"): "day_of_week",
+}
+
+RELS = [
+    ("fact_sales", "date_key", "dim_date", "date_key"),
+    ("fact_sales", "customer_id", "dim_customer", "customer_id"),
+    ("fact_sales", "stock_code", "dim_product", "stock_code"),
+    ("fact_sales", "country", "dim_country", "country"),
+    ("fact_returns", "date_key", "dim_date", "date_key"),
+    ("fact_returns", "stock_code", "dim_product", "stock_code"),
+    ("fact_returns", "country", "dim_country", "country"),
+    ("rfm_segments", "customer_id", "dim_customer", "customer_id"),
+    ("clv_scores", "customer_id", "dim_customer", "customer_id"),
+    ("mart_product_abc", "stock_code", "dim_product", "stock_code"),
+    ("forecast", "stock_code", "dim_product", "stock_code"),
+]
+
+HI = "churn_scores[churn_proba] >= 0.7"
+MEASURES = [
+    ("Sales", "Revenue", "SUM ( fact_sales[line_revenue] )", "£#,0"),
+    ("Sales", "Orders", "DISTINCTCOUNT ( fact_sales[invoice_no] )", "#,0"),
+    ("Sales", "Units", "SUM ( fact_sales[quantity] )", "#,0"),
+    ("Sales", "Customers", "DISTINCTCOUNTNOBLANK ( fact_sales[customer_id] )", "#,0"),
+    ("Sales", "AOV", "DIVIDE ( [Revenue], [Orders] )", "£#,0.00"),
+    ("Sales", "Products Sold", "DISTINCTCOUNT ( fact_sales[stock_code] )", "#,0"),
+    ("Sales", "Countries", "DISTINCTCOUNT ( fact_sales[country] )", "#,0"),
+    ("Sales", "Revenue per Customer", "DIVIDE ( [Revenue], [Customers] )", "£#,0"),
+    ("Sales", "Revenue Share", "DIVIDE ( [Revenue], CALCULATE ( [Revenue], ALL ( dim_country ) ) )", "0.0%"),
+    ("Time", "Revenue PY", "CALCULATE ( [Revenue], SAMEPERIODLASTYEAR ( dim_date[date] ) )", "£#,0"),
+    ("Time", "Revenue YoY %", "VAR py = [Revenue PY] RETURN IF ( NOT ISBLANK ( py ), DIVIDE ( [Revenue] - py, py ) )", "+0.0%;-0.0%;0.0%"),
+    ("Time", "Revenue Running Total", "VAR d = MAX ( dim_date[date] ) RETURN CALCULATE ( [Revenue], dim_date[date] <= d, ALL ( dim_date ) )", "£#,0"),
+    ("Time", "Trading Days", "COUNTROWS ( dim_date )", "#,0"),
+    ("Time", "Revenue per Trading Day", "DIVIDE ( [Revenue], [Trading Days] )", "£#,0"),
+    ("Returns", "Return Revenue", "-SUM ( fact_returns[line_revenue] )", "£#,0"),
+    ("Returns", "Returned Units", "-SUM ( fact_returns[quantity] )", "#,0"),
+    ("Returns", "Cancelled Invoices", "DISTINCTCOUNT ( fact_returns[invoice_no] )", "#,0"),
+    ("Returns", "Return Rate %", "DIVIDE ( [Return Revenue], [Revenue] )", "0.00%"),
+    ("Customers", "RFM Customers", "COUNTROWS ( rfm_segments )", "#,0"),
+    ("Customers", "Avg Recency Days", "AVERAGE ( rfm_segments[recency_days] )", "#,0"),
+    ("Customers", "Avg Frequency", "AVERAGE ( rfm_segments[frequency_orders] )", "0.0"),
+    ("Customers", "Avg Monetary", "AVERAGE ( rfm_segments[monetary_revenue] )", "£#,0"),
+    ("Customers", "Segment Revenue", "SUM ( rfm_segments[monetary_revenue] )", "£#,0"),
+    ("Customers", "Champions %", "DIVIDE ( CALCULATE ( COUNTROWS ( rfm_segments ), rfm_segments[segment] = \"Champions\" ), CALCULATE ( COUNTROWS ( rfm_segments ), ALL ( rfm_segments[segment] ) ) )", "0.0%"),
+    ("Cohorts", "Cohort Active", "SUM ( mart_cohort_retention[active_customers] )", "#,0"),
+    ("Cohorts", "Cohort Size", "CALCULATE ( SUM ( mart_cohort_retention[active_customers] ), ALL ( mart_cohort_retention[cohort_age_months], mart_cohort_retention[activity_month] ), mart_cohort_retention[cohort_age_months] = 0 )", "#,0"),
+    ("Cohorts", "Retention %", "DIVIDE ( [Cohort Active], [Cohort Size] )", "0.0%"),
+    ("Cohorts", "Month 1 Retention %", "CALCULATE ( [Retention %], mart_cohort_retention[cohort_age_months] = 1 )", "0.0%"),
+    ("Cohorts", "Cohorts", "CALCULATE ( DISTINCTCOUNT ( mart_cohort_retention[cohort_month] ) )", "#,0"),
+    ("Churn", "Scored Customers", "COUNTROWS ( churn_scores )", "#,0"),
+    ("Churn", "Avg Churn Probability", "AVERAGE ( churn_scores[churn_proba] )", "0.0%"),
+    ("Churn", "High Risk Customers", f"CALCULATE ( COUNTROWS ( churn_scores ), {HI} )", "#,0"),
+    ("Churn", "High Risk %", "DIVIDE ( [High Risk Customers], [Scored Customers] )", "0.0%"),
+    ("Churn", "Actual Churn Rate", "AVERAGE ( churn_scores[churned] )", "0.0%"),
+    ("Churn", "Revenue at Risk", f"CALCULATE ( SUM ( churn_scores[monetary_revenue] ), {HI} )", "£#,0"),
+    ("Churn", "CLV at Risk", f"CALCULATE ( SUM ( churn_scores[clv_6m_pred] ), {HI} )", "£#,0"),
+    ("CLV", "Avg Predicted CLV", "AVERAGE ( clv_scores[clv_6m_pred] )", "£#,0"),
+    ("CLV", "Total Predicted CLV", "SUM ( clv_scores[clv_6m_pred] )", "£#,0"),
+    ("CLV", "CLV Customers", "COUNTROWS ( clv_scores )", "#,0"),
+    ("CLV", "Median Predicted CLV", "MEDIAN ( clv_scores[clv_6m_pred] )", "£#,0"),
+    ("Products", "ABC Revenue", "SUM ( mart_product_abc[revenue] )", "£#,0"),
+    ("Products", "ABC Products", "COUNTROWS ( mart_product_abc )", "#,0"),
+    ("Products", "ABC Revenue Share", "DIVIDE ( [ABC Revenue], CALCULATE ( [ABC Revenue], ALL ( mart_product_abc ) ) )", "0.0%"),
+    ("Products", "Pair Orders", "SUM ( mart_basket_pairs[pair_orders] )", "#,0"),
+    ("Products", "Product Pairs", "COUNTROWS ( mart_basket_pairs )", "#,0"),
+    ("Products", "Top Pair Orders", "MAX ( mart_basket_pairs[pair_orders] )", "#,0"),
+    ("Forecast", "Actual Units", "SUM ( forecast[units] )", "#,0"),
+    ("Forecast", "Baseline Units", "SUM ( forecast[pred_baseline] )", "#,0"),
+    ("Forecast", "Model Units", "SUM ( forecast[pred_model] )", "#,0"),
+    ("Forecast", "WAPE Model", "DIVIDE ( SUMX ( forecast, ABS ( forecast[units] - forecast[pred_model] ) ), SUM ( forecast[units] ) )", "0.0%"),
+    ("Forecast", "WAPE Baseline", "DIVIDE ( SUMX ( forecast, ABS ( forecast[units] - forecast[pred_baseline] ) ), SUM ( forecast[units] ) )", "0.0%"),
+    ("Forecast", "Forecast Products", "DISTINCTCOUNT ( forecast[stock_code] )", "#,0"),
+]
 
 
-def _tmdl_type(duck_type: str) -> tuple[str, dict]:
-    t = duck_type.upper()
-    if "BIGINT" in t or "HUGEINT" in t or t in {"INTEGER", "INT", "SMALLINT", "TINYINT"}:
-        return "int64", {}
-    if "DOUBLE" in t or "DECIMAL" in t or "REAL" in t:
-        return "double", {}
-    if "BOOLEAN" in t:
-        return "boolean", {}
-    if "TIMESTAMP" in t or t == "DATE":
-        anno = {}
-        if t == "DATE":
-            anno["UnderlyingDateTimeDataType"] = "Date"
-        return "dateTime", anno
-    return "string", {}
+def duck_type(t: str) -> str:
+    t = t.upper()
+    if t.startswith("TIMESTAMP"):
+        return "TIMESTAMP"
+    if t in ("FLOAT", "DECIMAL") or t.startswith("DECIMAL"):
+        return "DOUBLE"
+    return t if t in DTYPE else "VARCHAR"
 
 
-def _tmdl_table(name: str, parquet_filename: str, schema: list[tuple[str, str]]) -> str:
-    # Measures MUST NOT appear here; just columns then partition (per Power BI loader expectations).
-    lines: list[str] = [f"table {name}", ""]
-    for col, dt in schema:
-        col_name = col if col.isidentifier() else f"'{col}'"
-        dtype, ann = _tmdl_type(dt)
-        lines.append(f"\tcolumn {col_name}")
-        lines.append(f"\t\tdataType: {dtype}")
-        lines.append("\t\tsummarizeBy: none")
-        lines.append(f"\t\tsourceColumn: {col}")
-        for k, v in ann.items():
-            lines.append(f"\t\tannotation {k} = {v}")
-        lines.append("")
-
-    lines.extend(
-        [
-            f"\tpartition {name} = m",
-            "\t\tmode: import",
-            "\t\tsource =",
-            "\t\t\tlet",
-            "\t\t\t\tSource = Parquet.Document("
-            f'File.Contents(DataFolder & "\\\\{parquet_filename}")',
-            "\t\t\t\t)",
-            "\t\t\tin",
-            "\t\t\t\tSource",
-            "",
+def m_source(name: str, typed: list[str], extra: list[tuple[str, str, str]]) -> list[str]:
+    src = f'Parquet.Document ( File.Contents ( DataFolder & "\\{name}.parquet" ) )'
+    steps = [f"Source = {src}", f"Typed = Table.TransformColumnTypes ( Source, {{{', '.join(typed)}}} )"]
+    last = "Typed"
+    if name == "dim_product":
+        steps += [
+            'Trimmed = Table.TransformColumns ( Typed, {{"stock_code", Text.Trim, type text}} )',
+            'Ranked = Table.AddColumn ( Trimmed, "desc_rank", each if [description] = null then 2 '
+            'else if Text.Upper ( [description] ) = [description] then 0 else 1, Int64.Type )',
+            'Sorted = Table.Buffer ( Table.Sort ( Ranked, {{"desc_rank", Order.Ascending}, {"description", Order.Ascending}} ) )',
+            'Deduped = Table.Distinct ( Sorted, {"stock_code", Comparer.OrdinalIgnoreCase} )',
+            'Clean = Table.RemoveColumns ( Deduped, {"desc_rank"} )',
         ]
-    )
-    return "\n".join(lines).rstrip() + "\n"
-
-
-def _tmdl_measures_table(measures: list[tuple[str, str, str]]) -> str:
-    # measures: (name, dax, formatString)
-    lines: list[str] = ["table _Measures", ""]
-    for name, dax, fmt in measures:
-        lines.append(f"\t/// {name}")
-        if "\n" in dax:
-            lines.append(f"\tmeasure '{name}' = ```")
-            for ln in dax.splitlines():
-                lines.append(f"\t{ln}")
-            lines.append("\t```")
-        else:
-            lines.append(f"\tmeasure '{name}' = {dax}")
-        lines.append(f"\t\tformatString: {fmt}")
-        lines.append("")
-
-    lines.extend(
-        [
-            "\tcolumn Dummy",
-            "\t\tisHidden",
-            "\t\tdataType: string",
-            "\t\tsummarizeBy: none",
-            "\t\tsourceColumn: Dummy",
-            "",
-            "\tpartition _Measures = m",
-            "\t\tmode: import",
-            "\t\tsource =",
-            "\t\t\tlet",
-            "\t\t\t\tSource = #table({\"Dummy\"}, {{null}})",
-            "\t\t\tin",
-            "\t\t\t\tSource",
-            "",
+        last = "Clean"
+    if name == "churn_scores":
+        steps += [
+            'Rfm = Parquet.Document ( File.Contents ( DataFolder & "\\rfm_segments.parquet" ) )',
+            'Clv = Parquet.Document ( File.Contents ( DataFolder & "\\clv_scores.parquet" ) )',
+            'J1 = Table.ExpandTableColumn ( Table.NestedJoin ( Typed, {"customer_id"}, Rfm, {"customer_id"}, "r", JoinKind.LeftOuter ), "r", {"segment", "monetary_revenue"} )',
+            'J2 = Table.ExpandTableColumn ( Table.NestedJoin ( J1, {"customer_id"}, Clv, {"customer_id"}, "c", JoinKind.LeftOuter ), "c", {"clv_6m_pred"} )',
+            'Joined = Table.TransformColumnTypes ( J2, {{"segment", type text}, {"monetary_revenue", type number}, {"clv_6m_pred", type number}} )',
         ]
-    )
-    return "\n".join(lines).rstrip() + "\n"
+        last = "Joined"
+    for i, (col, t, expr) in enumerate(extra):
+        steps.append(f'X{i} = Table.AddColumn ( {last}, "{col}", each {expr}, {DTYPE[t][2]} )')
+        last = f"X{i}"
+    out = ["\t\t\t\tlet"]
+    out += [f"\t\t\t\t    {s}," for s in steps[:-1]] + [f"\t\t\t\t    {steps[-1]}"]
+    return out + ["\t\t\t\tin", f"\t\t\t\t    {last}"]
 
 
-def generate(repo_root: Path) -> None:
-    dash = repo_root / "dashboard"
-    report_dir = dash / "RetailPulse.Report"
-    model_dir = dash / "RetailPulse.SemanticModel"
-    pbip = dash / "RetailPulse.pbip"
-
-    dash.mkdir(parents=True, exist_ok=True)
-
-    # PBIP entrypoint
-    _write_json(
-        pbip,
-        {
-            "$schema": "https://developer.microsoft.com/json-schemas/fabric/pbip/pbipProperties/1.0.0/schema.json",
-            "version": "1.0",
-            "artifacts": [{"report": {"path": "RetailPulse.Report"}}],
-            "settings": {"enableAutoRecovery": True},
-        },
-    )
-
-    # .platform files
-    _write_json(
-        report_dir / ".platform",
-        {
-            "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
-            "metadata": {"type": "Report", "displayName": "RetailPulse"},
-            "config": {"version": "2.0", "logicalId": "e0000000-0000-0000-0000-0000000000e2"},
-        },
-    )
-    _write_json(
-        model_dir / ".platform",
-        {
-            "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
-            "metadata": {"type": "SemanticModel", "displayName": "RetailPulse"},
-            "config": {"version": "2.0", "logicalId": "e0000000-0000-0000-0000-0000000000e1"},
-        },
-    )
-
-    # Report skeleton
-    _write_json(
-        report_dir / "definition.pbir",
-        {
-            "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/2.0.0/schema.json",
-            "version": "4.0",
-            "datasetReference": {"byPath": {"path": "../RetailPulse.SemanticModel"}},
-        },
-    )
-    _write_json(
-        report_dir / "definition" / "version.json",
-        {
-            "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/versionMetadata/1.0.0/schema.json",
-            "version": "2.0.0",
-        },
-    )
-    _write_json(
-        report_dir / "definition" / "report.json",
-        {
-            "$schema": PBIR_SCHEMA_REPORT,
-            "layoutOptimization": "None",
-            "settings": {
-                "useStylableVisualContainerHeader": True,
-                "exportDataMode": "AllowSummarized",
-                "defaultDrillFilterOtherVisuals": True,
-            },
-        },
-    )
-
-    # Pages (13)
-    page_titles = [
-        "Executive Summary",
-        "Revenue Trends",
-        "Seasonality & Peak Weeks",
-        "Country Performance",
-        "Customer RFM Segments",
-        "Cohort Retention",
-        "Churn Risk",
-        "Customer Lifetime Value",
-        "Product ABC Analysis",
-        "Market Basket",
-        "Returns & Cancellations",
-        "Demand Forecast",
-        "Revenue Rescue Plan",
-    ]
-    page_names = [f"page{i+1}" for i in range(len(page_titles))]
-    _write_json(
-        report_dir / "definition" / "pages" / "pages.json",
-        {
-            "$schema": PBIR_SCHEMA_PAGES,
-            "pageOrder": page_names,
-            "activePageName": page_names[0],
-        },
-    )
-
-    insights_blob = _insights_text(repo_root)
-    insights_snip = "\n".join(insights_blob.splitlines()[:14])
-
-    for _idx, (page, title) in enumerate(zip(page_names, page_titles, strict=True), start=1):
-        page_dir = report_dir / "definition" / "pages" / page
-        _write_json(
-            page_dir / "page.json",
-            {
-                "$schema": PBIR_SCHEMA_PAGE,
-                "name": page,
-                "displayName": title,
-                "displayOption": "FitToPage",
-                "height": 720,
-                "width": 1280,
-            },
-        )
-        (page_dir / "visuals").mkdir(parents=True, exist_ok=True)
-
-        # Layout: title + insight + 4 KPI cards + 2 slicers + 2 charts + 1 table.
-        base_z = 1000
-        v = []
-        v.append(
-            (
-                "textbox",
-                _textbox_visual(
-                    _hex20(f"{page}-title"),
-                    text=title,
-                    x=20,
-                    y=10,
-                    w=800,
-                    h=50,
-                    z=base_z,
-                    tab=0,
-                ),
-            )
-        )
-        v.append(
-            (
-                "textbox",
-                _textbox_visual(
-                    _hex20(f"{page}-insight"),
-                    text=f"Insights (from real data):\n{insights_snip}",
-                    x=20,
-                    y=560,
-                    w=1240,
-                    h=150,
-                    z=base_z + 1000,
-                    tab=1,
-                ),
-            )
-        )
-
-        kpi_measures = ["Revenue", "Orders", "Customers", "AOV"]
-        for j, m in enumerate(kpi_measures):
-            v.append(
-                (
-                    "card",
-                    _card_visual(
-                        _hex20(f"{page}-kpi-{m}"),
-                        measure=m,
-                        x=20 + j * 250,
-                        y=70,
-                        w=240,
-                        h=80,
-                        z=base_z + 2000 + j * 1000,
-                        tab=10 + j,
-                    ),
-                )
-            )
-
-        v.append(
-            (
-                "slicer",
-                _slicer_visual(
-                    _hex20(f"{page}-slicer-year"),
-                    table="dim_date",
-                    column="year",
-                    x=1040,
-                    y=70,
-                    w=220,
-                    h=80,
-                    z=base_z + 7000,
-                    tab=20,
-                ),
-            )
-        )
-        v.append(
-            (
-                "slicer",
-                _slicer_visual(
-                    _hex20(f"{page}-slicer-country"),
-                    table="dim_country",
-                    column="country",
-                    x=1040,
-                    y=160,
-                    w=220,
-                    h=120,
-                    z=base_z + 8000,
-                    tab=21,
-                ),
-            )
-        )
-
-        v.append(
-            (
-                "lineChart",
-                _line_visual(
-                    _hex20(f"{page}-line-revenue"),
-                    axis_table="dim_date",
-                    axis_col="date",
-                    measure="Revenue",
-                    x=20,
-                    y=160,
-                    w=650,
-                    h=260,
-                    z=base_z + 9000,
-                    tab=30,
-                ),
-            )
-        )
-        v.append(
-            (
-                "barChart",
-                _bar_visual(
-                    _hex20(f"{page}-bar-country"),
-                    cat_table="dim_country",
-                    cat_col="country",
-                    measure="Revenue",
-                    x=690,
-                    y=160,
-                    w=330,
-                    h=260,
-                    z=base_z + 10000,
-                    tab=31,
-                ),
-            )
-        )
-
-        v.append(
-            (
-                "table",
-                _table_visual(
-                    _hex20(f"{page}-table-products"),
-                    columns=[("dim_product", "stock_code")],
-                    measures=["Revenue"],
-                    x=20,
-                    y=430,
-                    w=1000,
-                    h=120,
-                    z=base_z + 11000,
-                    tab=40,
-                ),
-            )
-        )
-
-        for _kind, obj in v:
-            name = obj["name"]
-            _write_json(page_dir / "visuals" / name / "visual.json", obj)
-
-    # Semantic model skeleton
-    _write_json(
-        model_dir / "definition.pbism",
-        {
-            "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/semanticModel/definitionProperties/1.0.0/schema.json",
-            "version": "4.2",
-            "settings": {"qnaEnabled": True},
-        },
-    )
-    _write(model_dir / "definition" / "database.tmdl", "database\n compatibilityLevel: 1600\n")
-
-    data_folder = str((repo_root / "data" / "powerbi").resolve())
-    _write(
-        model_dir / "definition" / "expressions.tmdl",
-        "\n".join(
-            [
-                "/// Local folder containing `data/powerbi/*.parquet` exports",
-                (
-                    'expression DataFolder = "'
-                    + data_folder
-                    + '" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]'
-                ),
-                "",
-                " annotation PBI_ResultType = Text",
-                "",
-            ]
-        ),
-    )
-
-    tables = [
-        "dim_country",
-        "dim_customer",
-        "dim_date",
-        "dim_product",
-        "fact_sales",
-        "fact_returns",
-        "mart_customer_rfm",
-        "mart_monthly_kpis",
-        "mart_cohort_retention",
-        "mart_product_abc",
-        "mart_basket_pairs",
-        "rfm_segments",
-        "churn_scores",
-        "clv_scores",
-        "forecast",
-    ]
-
-    # Build table tmdl files from parquet schema
-    powerbi = repo_root / "data" / "powerbi"
-    for t in tables:
-        pq = powerbi / f"{t}.parquet"
-        if not pq.exists():
-            continue
-        schema = _duckdb_schema(pq)
-        tmdl = _tmdl_table(t, pq.name, schema)
-        if t == "dim_date":
-            # mark as date table: dataCategory Time and date key
-            tmdl = tmdl.replace("table dim_date\n", "table dim_date\n\tdataCategory: Time\n\n")
-            tmdl = tmdl.replace(
-                "\tcolumn date\n\t\tdataType",
-                "\tcolumn date\n\t\tisKey\n\t\tdataType",
-            )
-        _write(model_dir / "definition" / "tables" / f"{t}.tmdl", tmdl)
-
-    measures: list[tuple[str, str, str]] = [
-        ("Revenue", "SUM(fact_sales[line_revenue])", "#,##0"),
-        ("Orders", "DISTINCTCOUNT(fact_sales[invoice_no])", "#,##0"),
-        ("Units", "SUM(fact_sales[quantity])", "#,##0"),
-        ("Customers", "DISTINCTCOUNT(fact_sales[customer_id])", "#,##0"),
-        ("AOV", "DIVIDE([Revenue],[Orders])", "#,##0.00"),
-        ("Return Revenue", "SUM(fact_returns[line_revenue])", "#,##0"),
-        ("Return Revenue Abs", "ABS([Return Revenue])", "#,##0"),
-        ("Return Rate %", "DIVIDE([Return Revenue Abs],[Revenue])", "0.00%"),
-        ("Revenue MoM %", "DIVIDE([Revenue]-[Revenue Prev Month],[Revenue Prev Month])", "0.00%"),
-        ("Revenue YoY %", "DIVIDE([Revenue]-[Revenue Prev Year],[Revenue Prev Year])", "0.00%"),
-        ("Revenue Prev Month", "CALCULATE([Revenue], DATEADD(dim_date[date], -1, MONTH))", "#,##0"),
-        ("Revenue Prev Year", "CALCULATE([Revenue], DATEADD(dim_date[date], -1, YEAR))", "#,##0"),
-        (
-            "Revenue Rolling 3M",
-            "CALCULATE([Revenue], DATESINPERIOD(dim_date[date], MAX(dim_date[date]), -3, MONTH))",
-            "#,##0",
-        ),
-        (
-            "Revenue Running Total",
-            "CALCULATE("
-            "[Revenue], "
-            "FILTER(ALL(dim_date[date]), dim_date[date] <= MAX(dim_date[date]))"
-            ")",
-            "#,##0",
-        ),
-        (
-            "New Customers",
-            "CALCULATE("
-            "DISTINCTCOUNT(dim_customer[customer_id]), "
-            "DATESBETWEEN(dim_date[date], MIN(dim_date[date]), MAX(dim_date[date]))"
-            ")",
-            "#,##0",
-        ),
-        ("Returning Customers", "[Customers]-[New Customers]", "#,##0"),
-        ("Avg CLV 6M", "AVERAGE(clv_scores[clv_6m_pred])", "#,##0"),
-        (
-            "High Churn Risk Customers",
-            "CALCULATE(DISTINCTCOUNT(churn_scores[customer_id]), churn_scores[churn_proba] >= 0.7)",
-            "#,##0",
-        ),
-        (
-            "Revenue At Risk",
-            "SUMX("
-            "FILTER(churn_scores, churn_scores[churn_proba] >= 0.7), "
-            "LOOKUPVALUE("
-            "mart_customer_rfm[monetary_revenue], "
-            "mart_customer_rfm[customer_id], "
-            "churn_scores[customer_id]"
-            ")"
-            ")",
-            "#,##0",
-        ),
-        ("Forecast Units", "SUM(forecast[units])", "#,##0"),
-        ("Forecast Pred Model", "SUM(forecast[pred_model])", "#,##0"),
-        ("Forecast Pred Baseline", "SUM(forecast[pred_baseline])", "#,##0"),
-        (
-            "Forecast Error Abs",
-            "SUMX(forecast, ABS(forecast[units]-forecast[pred_model]))",
-            "#,##0",
-        ),
-        (
-            "Forecast WAPE",
-            "DIVIDE([Forecast Error Abs], SUMX(forecast, ABS(forecast[units])))",
-            "0.00%",
-        ),
-        (
-            "ABC A Share",
-            "DIVIDE("
-            "SUMX("
-            "FILTER(mart_product_abc, mart_product_abc[abc_class]=\"A\"), "
-            "mart_product_abc[revenue]"
-            "), "
-            "SUM(mart_product_abc[revenue])"
-            ")",
-            "0.00%",
-        ),
-        ("Top Pair Orders", "MAX(mart_basket_pairs[pair_orders])", "#,##0"),
-        ("Distinct Products", "DISTINCTCOUNT(fact_sales[stock_code])", "#,##0"),
-        ("Orders per Customer", "DIVIDE([Orders],[Customers])", "#,##0.00"),
-        ("Revenue per Customer", "DIVIDE([Revenue],[Customers])", "#,##0.00"),
-        ("Avg Units per Order", "DIVIDE([Units],[Orders])", "#,##0.00"),
-        ("Active Customers (Cohort)", "SUM(mart_cohort_retention[active_customers])", "#,##0"),
-        (
-            "Cohort Retention %",
-            "DIVIDE("
-            "SUM(mart_cohort_retention[active_customers]), "
-            "CALCULATE("
-            "SUM(mart_cohort_retention[active_customers]), "
-            "mart_cohort_retention[cohort_age_months]=0"
-            ")"
-            ")",
-            "0.00%",
-        ),
-        ("Churn Avg Proba", "AVERAGE(churn_scores[churn_proba])", "0.000"),
-        ("CLV Customers", "DISTINCTCOUNT(clv_scores[customer_id])", "#,##0"),
-        (
-            "RFM Champions",
-            "CALCULATE(COUNTROWS(rfm_segments), rfm_segments[segment]=\"Champions\")",
-            "#,##0",
-        ),
-        ("RFM Champions %", "DIVIDE([RFM Champions], COUNTROWS(rfm_segments))", "0.00%"),
-        ("Cancellations Orders", "DISTINCTCOUNT(fact_returns[invoice_no])", "#,##0"),
-        ("Sales Orders", "DISTINCTCOUNT(fact_sales[invoice_no])", "#,##0"),
-        ("Cancellation Rate %", "DIVIDE([Cancellations Orders], [Sales Orders])", "0.00%"),
-        (
-            "Max Weekly Revenue",
-            'MAXX(SUMMARIZE(fact_sales, dim_date[week_of_year], "rev", [Revenue]), [rev])',
-            "#,##0",
-        ),
-        (
-            "Revenue Last 30D",
-            "CALCULATE([Revenue], DATESINPERIOD(dim_date[date], MAX(dim_date[date]), -30, DAY))",
-            "#,##0",
-        ),
-        (
-            "Revenue Last 90D",
-            "CALCULATE([Revenue], DATESINPERIOD(dim_date[date], MAX(dim_date[date]), -90, DAY))",
-            "#,##0",
-        ),
-        ("Revenue Share Top Country", "DIVIDE([Revenue Top Country],[Revenue])", "0.00%"),
-        (
-            "Revenue Top Country",
-            "CALCULATE([Revenue], TOPN(1, VALUES(dim_country[country]), [Revenue]))",
-            "#,##0",
-        ),
-        (
-            "Median Order Value",
-            "MEDIANX(VALUES(fact_sales[invoice_no]), CALCULATE([Revenue]))",
-            "#,##0.00",
-        ),
-        ("Revenue per Unit", "DIVIDE([Revenue],[Units])", "#,##0.00"),
-    ]
-
-    _write(model_dir / "definition" / "tables" / "_Measures.tmdl", _tmdl_measures_table(measures))
-
-    # Model file with refs
-    ref_tables = "\n".join([f"ref table {t}" for t in tables] + ["ref table _Measures"])
-    _write(
-        model_dir / "definition" / "model.tmdl",
-        "\n".join(
-            [
-                "model Model",
-                " culture: en-GB",
-                " defaultPowerBIDataSourceVersion: powerBI_V3",
-                " discourageImplicitMeasures",
-                " sourceQueryCulture: en-US",
-                "",
-                'annotation PBI_ProTooling = ["DevMode","CopilotTooling"]',
-                "",
-                ref_tables,
-                "",
-                "ref cultureInfo en-GB",
-                "",
-            ]
-        ),
-    )
-
-    # Relationships
-    rels: list[tuple[str, str]] = [
-        ("fact_sales.stock_code", "dim_product.stock_code"),
-        ("fact_sales.customer_id", "dim_customer.customer_id"),
-        ("fact_sales.country", "dim_country.country"),
-        ("fact_sales.date_key", "dim_date.date_key"),
-        ("fact_returns.stock_code", "dim_product.stock_code"),
-        ("fact_returns.customer_id", "dim_customer.customer_id"),
-        ("fact_returns.country", "dim_country.country"),
-        ("fact_returns.date_key", "dim_date.date_key"),
-        ("mart_customer_rfm.customer_id", "dim_customer.customer_id"),
-        ("rfm_segments.customer_id", "dim_customer.customer_id"),
-        ("churn_scores.customer_id", "dim_customer.customer_id"),
-        ("clv_scores.customer_id", "dim_customer.customer_id"),
-        ("forecast.stock_code", "dim_product.stock_code"),
-        ("mart_product_abc.stock_code", "dim_product.stock_code"),
-    ]
-    rel_lines: list[str] = []
-    for i, (frm, to) in enumerate(rels, start=1):
-        rel_lines.append(f"relationship c0000000-0000-0000-0000-{i:012d}")
-        rel_lines.append(f" fromColumn: {frm}")
-        rel_lines.append(f" toColumn: {to}")
-        rel_lines.append("")
-    _write(model_dir / "definition" / "relationships.tmdl", "\n".join(rel_lines).rstrip() + "\n")
+def table_columns(con: duckdb.DuckDBPyConnection, name: str) -> list[tuple[str, str]]:
+    rows = con.execute(f"describe select * from '{(PBI_DATA / (name + '.parquet')).as_posix()}'").fetchall()
+    return [(c, duck_type(t)) for c, t, *_ in rows]
 
 
-def main() -> int:
-    generate(_repo_root())
-    print("Generated dashboard/RetailPulse.pbip project.")
-    return 0
+def model_columns(con: duckdb.DuckDBPyConnection, name: str) -> list[tuple[str, str]]:
+    cols = table_columns(con, name)
+    if name == "churn_scores":
+        cols += [("segment", "VARCHAR"), ("monetary_revenue", "DOUBLE"), ("clv_6m_pred", "DOUBLE")]
+    return cols + [(c, t) for c, t, _ in EXTRA.get(name, [])]
+
+
+def tmdl_table(con: duckdb.DuckDBPyConnection, name: str) -> str:
+    lines = [f"/// {TABLES[name]}", f"table {name}", f"\tlineageTag: {tag('t', name)}"]
+    if name == "dim_date":
+        lines.append("\tdataCategory: Time")
+    lines.append("")
+    typed = []
+    for c, t in table_columns(con, name):
+        typed.append(f'{{"{c}", {DTYPE[t][2]}}}')
+    for c, t in model_columns(con, name):
+        dt, fmt, _ = DTYPE[t]
+        if c.endswith(("_id", "_key", "year", "month", "day", "day_of_week", "week_of_year", "quarter", "_months")) and dt == "int64":
+            fmt = "0"
+        if c in ("churn_proba", "revenue_share", "cum_share"):
+            fmt = "0.0%"
+        lines += [f"\tcolumn {c}", f"\t\tdataType: {dt}"]
+        if fmt:
+            lines.append(f"\t\tformatString: {fmt}")
+        if name == "dim_date" and c == "date":
+            lines.append("\t\tisKey")
+        if c in HIDDEN and name.startswith("fact"):
+            lines.append("\t\tisHidden")
+        lines += [f"\t\tlineageTag: {tag('c', name, c)}", "\t\tsummarizeBy: none", f"\t\tsourceColumn: {c}"]
+        if (name, c) in SORT_BY:
+            lines.append(f"\t\tsortByColumn: {SORT_BY[(name, c)]}")
+        lines += ["", "\t\tannotation SummarizationSetBy = Automatic", ""]
+    lines += [f"\tpartition {name} = m", "\t\tmode: import", "\t\tsource ="]
+    lines += m_source(name, typed, EXTRA.get(name, [])) + [""]
+    return "\n".join(lines)
+
+
+def tmdl_measures() -> str:
+    lines = ["table _Measures", f"\tlineageTag: {tag('t', '_Measures')}", ""]
+    for folder, name, expr, fmt in MEASURES:
+        lines += [f"\tmeasure '{name}' = {expr}", f"\t\tformatString: {fmt}",
+                  f"\t\tdisplayFolder: {folder}", f"\t\tlineageTag: {tag('m', name)}", ""]
+    lines += ["\tcolumn Value", "\t\tdataType: string", "\t\tisHidden", f"\t\tlineageTag: {tag('c', '_Measures', 'Value')}",
+              "\t\tsummarizeBy: none", "\t\tisNameInferred", "\t\tsourceColumn: [Value]", "",
+              "\t\tannotation SummarizationSetBy = Automatic", "",
+              "\tpartition _Measures = calculated", "\t\tmode: import", '\t\tsource = ROW ( "Value", BLANK () )', ""]
+    return "\n".join(lines)
+
+
+def data_folder_literal() -> str:
+    return str(PBI_DATA).replace("/", "\\").replace("\\", "\\\\")
+
+
+def build_model(con: duckdb.DuckDBPyConnection) -> None:
+    sm = DASH / f"{NAME}.SemanticModel"
+    if sm.exists():
+        shutil.rmtree(sm)
+    d = sm / "definition"
+    wjson(sm / ".platform", {
+        "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+        "metadata": {"type": "SemanticModel", "displayName": NAME},
+        "config": {"version": "2.0", "logicalId": tag("sm")}})
+    wjson(sm / "definition.pbism", {
+        "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/semanticModel/definitionProperties/1.0.0/schema.json",
+        "version": "4.2", "settings": {}})
+    write(d / "database.tmdl", "database\n\tcompatibilityLevel: 1601\n")
+    write(d / "expressions.tmdl",
+          "/// Full path to the repo's data\\powerbi folder\n"
+          f'expression DataFolder = "{data_folder_literal()}" meta [IsParameterQuery = true, Type = "Text", IsParameterQueryRequired = true]\n'
+          f"\tlineageTag: {tag('e', 'DataFolder')}\n\n\tannotation PBI_ResultType = Text\n")
+    order = list(TABLES) + ["_Measures"]
+    write(d / "model.tmdl",
+          "model Model\n\tculture: en-US\n\tdefaultPowerBIDataSourceVersion: powerBI_V3\n\tdiscourageImplicitMeasures\n\tsourceQueryCulture: en-US\n\n"
+          f"annotation PBI_QueryOrder = {json.dumps(['DataFolder'] + order)}\n\n"
+          + "".join(f"ref table {t}\n" for t in order))
+    rel = [f"relationship {tag('r', ft, fc, tt)}\n\tfromColumn: {ft}.{fc}\n\ttoColumn: {tt}.{tc}\n" for ft, fc, tt, tc in RELS]
+    write(d / "relationships.tmdl", "\n".join(rel))
+    for t in TABLES:
+        write(d / "tables" / f"{t}.tmdl", tmdl_table(con, t))
+    write(d / "tables" / "_Measures.tmdl", tmdl_measures())
+
+
+def check_relationships(con: duckdb.DuckDBPyConnection) -> list[str]:
+    """Each relationship must join existing columns with the same type."""
+    problems = []
+    for ft, fc, tt, tc in RELS:
+        a = dict(model_columns(con, ft)).get(fc)
+        b = dict(model_columns(con, tt)).get(tc)
+        if a is None or b is None or DTYPE[a][0] != DTYPE[b][0]:
+            problems.append(f"{ft}.{fc} ({a}) -> {tt}.{tc} ({b})")
+    return problems
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    from pbip_report import build_report  # noqa: E402
 
+    c = duckdb.connect()
+    bad = check_relationships(c)
+    if bad:
+        raise SystemExit("bad relationships: " + "; ".join(bad))
+    build_model(c)
+    build_report(c)
+    wjson(DASH / f"{NAME}.pbip", {
+        "$schema": "https://developer.microsoft.com/json-schemas/fabric/pbip/pbipProperties/1.0.0/schema.json",
+        "version": "1.0", "artifacts": [{"report": {"path": f"{NAME}.Report"}}],
+        "settings": {"enableAutoRecovery": True}})
+    write(DASH / ".gitignore", "**/.pbi/localSettings.json\n**/.pbi/cache.abf\n")
+    print("wrote", DASH.relative_to(ROOT))

@@ -1,9 +1,29 @@
 {
- "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/report/1.2.0/schema.json",
- "layoutOptimization": "None",
- "settings": {
-  "useStylableVisualContainerHeader": true,
-  "exportDataMode": "AllowSummarized",
-  "defaultDrillFilterOtherVisuals": true
- }
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/report/1.2.0/schema.json",
+  "layoutOptimization": "None",
+  "themeCollection": {
+    "customTheme": {
+      "name": "retailpulse-navy.json",
+      "reportVersionAtImport": "5.55",
+      "type": "RegisteredResources"
+    }
+  },
+  "resourcePackages": [
+    {
+      "name": "RegisteredResources",
+      "type": "RegisteredResources",
+      "items": [
+        {
+          "name": "retailpulse-navy.json",
+          "path": "retailpulse-navy.json",
+          "type": "CustomTheme"
+        }
+      ]
+    }
+  ],
+  "settings": {
+    "useStylableVisualContainerHeader": true,
+    "exportDataMode": "AllowSummarized",
+    "defaultDrillFilterOtherVisuals": true
+  }
 }

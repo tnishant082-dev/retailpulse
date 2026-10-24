@@ -1,15 +1,20 @@
+/// Countries
 table dim_country
+	lineageTag: 8d99a572-c4d0-5c8d-a72b-296826a30e54
 
 	column country
 		dataType: string
+		lineageTag: deb59f15-3b69-52b8-926d-afb70d9840fc
 		summarizeBy: none
 		sourceColumn: country
+
+		annotation SummarizationSetBy = Automatic
 
 	partition dim_country = m
 		mode: import
 		source =
-			let
-				Source = Parquet.Document(File.Contents(DataFolder & "\\dim_country.parquet")
-				)
-			in
-				Source
+				let
+				    Source = Parquet.Document ( File.Contents ( DataFolder & "\dim_country.parquet" ) ),
+				    Typed = Table.TransformColumnTypes ( Source, {{"country", type text}} )
+				in
+				    Typed

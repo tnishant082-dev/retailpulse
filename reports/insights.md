@@ -9,7 +9,7 @@
 - **top country**: United Kingdom (17,655,380 revenue)
 - **peak week (by revenue)**: week of 2010-12-06 (582,070 revenue)
 - **peak month (by revenue)**: 2011-11 (1,503,867 revenue)
-- **top product (by revenue)**: ? (1,272,230 revenue)
+- **top product (by revenue)**: REGENCY CAKESTAND 3 TIER (344,069 revenue)
 - **ABC A share (by revenue)**: 80.0%
 - **top basket pair (by orders)**: 22386 + 85099B (1,426 orders)
 - **biggest cohort (month 0 size)**: 2009-12 (955 customers)

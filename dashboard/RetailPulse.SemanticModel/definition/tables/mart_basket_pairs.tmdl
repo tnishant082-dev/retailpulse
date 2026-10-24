@@ -1,25 +1,46 @@
+/// Product pairs bought on the same invoice
 table mart_basket_pairs
+	lineageTag: 1ea882ac-0237-52db-9cf6-2368babe5c92
 
 	column product_a
 		dataType: string
+		lineageTag: 9bc870fb-5ac2-519e-9742-8efb6380caf3
 		summarizeBy: none
 		sourceColumn: product_a
 
+		annotation SummarizationSetBy = Automatic
+
 	column product_b
 		dataType: string
+		lineageTag: 7a82aff2-7799-523e-8b97-a0cbebc60e91
 		summarizeBy: none
 		sourceColumn: product_b
 
+		annotation SummarizationSetBy = Automatic
+
 	column pair_orders
 		dataType: int64
+		formatString: 0
+		lineageTag: 71e7f79d-95a9-5bcb-8d71-011adddbc4cc
 		summarizeBy: none
 		sourceColumn: pair_orders
+
+		annotation SummarizationSetBy = Automatic
+
+	column pair
+		dataType: string
+		lineageTag: 1da8659c-fd1f-5b21-9608-bcb65ff36055
+		summarizeBy: none
+		sourceColumn: pair
+
+		annotation SummarizationSetBy = Automatic
 
 	partition mart_basket_pairs = m
 		mode: import
 		source =
-			let
-				Source = Parquet.Document(File.Contents(DataFolder & "\\mart_basket_pairs.parquet")
-				)
-			in
-				Source
+				let
+				    Source = Parquet.Document ( File.Contents ( DataFolder & "\mart_basket_pairs.parquet" ) ),
+				    Typed = Table.TransformColumnTypes ( Source, {{"product_a", type text}, {"product_b", type text}, {"pair_orders", Int64.Type}} ),
+				    X0 = Table.AddColumn ( Typed, "pair", each [product_a] & " + " & [product_b], type text )
+				in
+				    X0

@@ -1,30 +1,97 @@
+/// Churn probability per customer, joined with RFM and CLV
 table churn_scores
+	lineageTag: b32b240b-d83a-5eda-ad44-cf9d5d73a200
 
 	column customer_id
 		dataType: int64
+		formatString: 0
+		lineageTag: dd2ca1ea-4af2-510d-88c4-d1607d6fac15
 		summarizeBy: none
 		sourceColumn: customer_id
 
+		annotation SummarizationSetBy = Automatic
+
 	column cutoff_date
 		dataType: dateTime
+		formatString: yyyy-mm-dd hh:nn
+		lineageTag: 22e4bf9f-12fa-5fd1-95ff-0295640e66f1
 		summarizeBy: none
 		sourceColumn: cutoff_date
 
+		annotation SummarizationSetBy = Automatic
+
 	column churned
 		dataType: int64
+		formatString: 0
+		lineageTag: c49b0ba6-9892-5059-9136-97dbda790086
 		summarizeBy: none
 		sourceColumn: churned
 
+		annotation SummarizationSetBy = Automatic
+
 	column churn_proba
 		dataType: double
+		formatString: 0.0%
+		lineageTag: b461431b-c3cb-581f-a9f7-0a0085a2e4d2
 		summarizeBy: none
 		sourceColumn: churn_proba
+
+		annotation SummarizationSetBy = Automatic
+
+	column segment
+		dataType: string
+		lineageTag: 75e3ecd0-900e-5a3d-b21d-7280e3232e24
+		summarizeBy: none
+		sourceColumn: segment
+
+		annotation SummarizationSetBy = Automatic
+
+	column monetary_revenue
+		dataType: double
+		formatString: #,0.00
+		lineageTag: 0300214f-2d4a-5f9b-a4f8-81e4625efdb0
+		summarizeBy: none
+		sourceColumn: monetary_revenue
+
+		annotation SummarizationSetBy = Automatic
+
+	column clv_6m_pred
+		dataType: double
+		formatString: #,0.00
+		lineageTag: 1501a6e4-ea49-5be5-905e-8abc9535f2c2
+		summarizeBy: none
+		sourceColumn: clv_6m_pred
+
+		annotation SummarizationSetBy = Automatic
+
+	column risk_band
+		dataType: string
+		lineageTag: 045f8edb-9e69-5a27-bbe7-4d41344a3c99
+		summarizeBy: none
+		sourceColumn: risk_band
+
+		annotation SummarizationSetBy = Automatic
+
+	column proba_bucket
+		dataType: string
+		lineageTag: 79d70b2d-ba5e-554a-9633-87cdf3b50154
+		summarizeBy: none
+		sourceColumn: proba_bucket
+
+		annotation SummarizationSetBy = Automatic
 
 	partition churn_scores = m
 		mode: import
 		source =
-			let
-				Source = Parquet.Document(File.Contents(DataFolder & "\\churn_scores.parquet")
-				)
-			in
-				Source
+				let
+				    Source = Parquet.Document ( File.Contents ( DataFolder & "\churn_scores.parquet" ) ),
+				    Typed = Table.TransformColumnTypes ( Source, {{"customer_id", Int64.Type}, {"cutoff_date", type datetime}, {"churned", Int64.Type}, {"churn_proba", type number}} ),
+				    Rfm = Parquet.Document ( File.Contents ( DataFolder & "\rfm_segments.parquet" ) ),
+				    Clv = Parquet.Document ( File.Contents ( DataFolder & "\clv_scores.parquet" ) ),
+				    J1 = Table.ExpandTableColumn ( Table.NestedJoin ( Typed, {"customer_id"}, Rfm, {"customer_id"}, "r", JoinKind.LeftOuter ), "r", {"segment", "monetary_revenue"} ),
+				    J2 = Table.ExpandTableColumn ( Table.NestedJoin ( J1, {"customer_id"}, Clv, {"customer_id"}, "c", JoinKind.LeftOuter ), "c", {"clv_6m_pred"} ),
+				    Joined = Table.TransformColumnTypes ( J2, {{"segment", type text}, {"monetary_revenue", type number}, {"clv_6m_pred", type number}} ),
+				    X0 = Table.AddColumn ( Joined, "risk_band", each if [churn_proba] >= 0.7 then "High (0.7+)" else if [churn_proba] >= 0.4 then "Medium (0.4-0.7)" else "Low (<0.4)", type text ),
+				    X1 = Table.AddColumn ( X0, "proba_bucket", each Number.ToText(Number.RoundDown([churn_proba] * 10) / 10, "0.0"), type text )
+				in
+				    X1

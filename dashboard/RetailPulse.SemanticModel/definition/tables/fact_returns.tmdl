@@ -1,55 +1,91 @@
+/// Cancelled invoice lines (C-prefixed invoices)
 table fact_returns
+	lineageTag: 1b1f8d53-b47f-5232-8bfc-5a9ebfa4c2f2
 
 	column invoice_no
 		dataType: string
+		lineageTag: a24e52b5-5c10-599f-88c8-9ea6e24b0cc6
 		summarizeBy: none
 		sourceColumn: invoice_no
 
+		annotation SummarizationSetBy = Automatic
+
 	column invoice_ts
 		dataType: dateTime
+		formatString: yyyy-mm-dd hh:nn
+		lineageTag: 31aebf32-0323-5b6f-882d-d68f63cbd359
 		summarizeBy: none
 		sourceColumn: invoice_ts
 
+		annotation SummarizationSetBy = Automatic
+
 	column date_key
 		dataType: int64
+		formatString: 0
+		isHidden
+		lineageTag: 13cb87ef-2f91-57c8-93f0-20ed52901f6d
 		summarizeBy: none
 		sourceColumn: date_key
 
+		annotation SummarizationSetBy = Automatic
+
 	column stock_code
 		dataType: string
+		lineageTag: 879df3c1-8671-5a0f-a650-2246e19d1470
 		summarizeBy: none
 		sourceColumn: stock_code
 
+		annotation SummarizationSetBy = Automatic
+
 	column customer_id
 		dataType: int64
+		formatString: 0
+		lineageTag: 86878ab7-1703-56e9-940d-614d3ccb0894
 		summarizeBy: none
 		sourceColumn: customer_id
 
+		annotation SummarizationSetBy = Automatic
+
 	column country
 		dataType: string
+		lineageTag: 5a3d411b-f2b4-5921-8a2d-65bbeccde6b7
 		summarizeBy: none
 		sourceColumn: country
 
+		annotation SummarizationSetBy = Automatic
+
 	column quantity
 		dataType: double
+		formatString: #,0.00
+		lineageTag: ee70fc65-d681-559d-af72-f8bb525c3443
 		summarizeBy: none
 		sourceColumn: quantity
 
+		annotation SummarizationSetBy = Automatic
+
 	column unit_price
 		dataType: double
+		formatString: #,0.00
+		lineageTag: bec8d6fd-e93f-5efc-b1a5-63c5539f1c1e
 		summarizeBy: none
 		sourceColumn: unit_price
 
+		annotation SummarizationSetBy = Automatic
+
 	column line_revenue
 		dataType: double
+		formatString: #,0.00
+		lineageTag: 087423b5-1372-5740-b1b6-499980b0c5fd
 		summarizeBy: none
 		sourceColumn: line_revenue
+
+		annotation SummarizationSetBy = Automatic
 
 	partition fact_returns = m
 		mode: import
 		source =
-			let
-				Source = Parquet.Document(File.Contents(DataFolder & "\\fact_returns.parquet")
-				)
-			in
-				Source
+				let
+				    Source = Parquet.Document ( File.Contents ( DataFolder & "\fact_returns.parquet" ) ),
+				    Typed = Table.TransformColumnTypes ( Source, {{"invoice_no", type text}, {"invoice_ts", type datetime}, {"date_key", Int64.Type}, {"stock_code", type text}, {"customer_id", Int64.Type}, {"country", type text}, {"quantity", type number}, {"unit_price", type number}, {"line_revenue", type number}} )
+				in
+				    Typed

@@ -133,7 +133,15 @@ def compute(repo_root: Path) -> Insights:
               COALESCE(p.description, s.stock_code) AS product,
               SUM(s.line_revenue) AS rev
             FROM read_parquet('{fact_sales}') s
-            LEFT JOIN read_parquet('{dim_product}') p
+            LEFT JOIN (
+              SELECT stock_code,
+                COALESCE(
+                  MAX(description) FILTER (WHERE description = UPPER(description)),
+                  MAX(description)
+                ) AS description
+              FROM read_parquet('{dim_product}')
+              GROUP BY stock_code
+            ) p
               ON s.stock_code = p.stock_code
             GROUP BY product
             ORDER BY rev DESC

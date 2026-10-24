@@ -1,35 +1,56 @@
+/// Weekly units: actual vs baseline vs model (holdout weeks)
 table forecast
+	lineageTag: 9326d26d-8b27-5dea-9eb1-b22f0e4269f3
 
 	column stock_code
 		dataType: string
+		lineageTag: f78e3ee1-f6d3-5dd8-84ac-c1b7f4836a55
 		summarizeBy: none
 		sourceColumn: stock_code
 
+		annotation SummarizationSetBy = Automatic
+
 	column week_start
 		dataType: dateTime
+		formatString: yyyy-mm-dd hh:nn
+		lineageTag: f8c40c49-eb6a-5dd1-b0e5-44b8811cc86c
 		summarizeBy: none
 		sourceColumn: week_start
 
+		annotation SummarizationSetBy = Automatic
+
 	column units
 		dataType: double
+		formatString: #,0.00
+		lineageTag: 295e87c3-1a26-52c2-8bbf-02dfe99c56ce
 		summarizeBy: none
 		sourceColumn: units
 
+		annotation SummarizationSetBy = Automatic
+
 	column pred_baseline
 		dataType: double
+		formatString: #,0.00
+		lineageTag: f38c88d5-a1c1-5d6a-a69a-4790e1f06f43
 		summarizeBy: none
 		sourceColumn: pred_baseline
 
+		annotation SummarizationSetBy = Automatic
+
 	column pred_model
 		dataType: double
+		formatString: #,0.00
+		lineageTag: c6c9ad29-d282-56ea-b3d8-dc41fc7db5a3
 		summarizeBy: none
 		sourceColumn: pred_model
+
+		annotation SummarizationSetBy = Automatic
 
 	partition forecast = m
 		mode: import
 		source =
-			let
-				Source = Parquet.Document(File.Contents(DataFolder & "\\forecast.parquet")
-				)
-			in
-				Source
+				let
+				    Source = Parquet.Document ( File.Contents ( DataFolder & "\forecast.parquet" ) ),
+				    Typed = Table.TransformColumnTypes ( Source, {{"stock_code", type text}, {"week_start", type datetime}, {"units", type number}, {"pred_baseline", type number}, {"pred_model", type number}} )
+				in
+				    Typed

@@ -1,0 +1,114 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.4.0/schema.json",
+  "name": "p13_rescue_insight",
+  "position": {
+    "x": 1214,
+    "y": 684,
+    "z": 11000,
+    "width": 686,
+    "height": 376,
+    "tabOrder": 11000
+  },
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "Insights",
+                    "textStyle": {
+                      "fontFamily": "Segoe UI Semibold",
+                      "fontSize": "14pt",
+                      "color": "#2DD4BF"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "• 3,241 high-risk customers with £3,496,501 past revenue and £495,117 predicted CLV.",
+                    "textStyle": {
+                      "fontSize": "11pt",
+                      "color": "#E2E8F0"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "• Highest value at risk: At Risk 703 customers / £1,258,615, Regular 1,146 customers / £744,731.",
+                    "textStyle": {
+                      "fontSize": "11pt",
+                      "color": "#E2E8F0"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "• Start win-back with high-risk At Risk customers, then Regular.",
+                    "textStyle": {
+                      "fontSize": "11pt",
+                      "color": "#E2E8F0"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "• Protect class A stock in Sep–Nov; peak week starts 2010-12-06.",
+                    "textStyle": {
+                      "fontSize": "11pt",
+                      "color": "#E2E8F0"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "border": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "color": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#334155'"
+                    }
+                  }
+                }
+              }
+            },
+            "radius": {
+              "expr": {
+                "Literal": {
+                  "Value": "8D"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

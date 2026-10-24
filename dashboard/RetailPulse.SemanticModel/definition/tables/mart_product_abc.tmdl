@@ -1,35 +1,55 @@
+/// ABC class per stock code by revenue
 table mart_product_abc
+	lineageTag: 13cb9d1f-5ae3-57e3-a816-f4fcee508912
 
 	column stock_code
 		dataType: string
+		lineageTag: c60e990f-6c80-591d-afe7-5b1345a46b6a
 		summarizeBy: none
 		sourceColumn: stock_code
 
+		annotation SummarizationSetBy = Automatic
+
 	column revenue
 		dataType: double
+		formatString: #,0.00
+		lineageTag: cb26fb1c-979f-51df-bad1-13fb0fd1f4d2
 		summarizeBy: none
 		sourceColumn: revenue
 
+		annotation SummarizationSetBy = Automatic
+
 	column revenue_share
 		dataType: double
+		formatString: 0.0%
+		lineageTag: bd9c182b-8152-5835-a60b-544142d34a41
 		summarizeBy: none
 		sourceColumn: revenue_share
 
+		annotation SummarizationSetBy = Automatic
+
 	column cum_share
 		dataType: double
+		formatString: 0.0%
+		lineageTag: 7fe6f30e-fe19-57ba-8626-d363d2521972
 		summarizeBy: none
 		sourceColumn: cum_share
 
+		annotation SummarizationSetBy = Automatic
+
 	column abc_class
 		dataType: string
+		lineageTag: 8d5690e3-f6c3-5895-90c5-ee50beffd34c
 		summarizeBy: none
 		sourceColumn: abc_class
+
+		annotation SummarizationSetBy = Automatic
 
 	partition mart_product_abc = m
 		mode: import
 		source =
-			let
-				Source = Parquet.Document(File.Contents(DataFolder & "\\mart_product_abc.parquet")
-				)
-			in
-				Source
+				let
+				    Source = Parquet.Document ( File.Contents ( DataFolder & "\mart_product_abc.parquet" ) ),
+				    Typed = Table.TransformColumnTypes ( Source, {{"stock_code", type text}, {"revenue", type number}, {"revenue_share", type number}, {"cum_share", type number}, {"abc_class", type text}} )
+				in
+				    Typed

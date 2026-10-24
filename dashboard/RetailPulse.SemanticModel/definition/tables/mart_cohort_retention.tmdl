@@ -1,32 +1,57 @@
+/// Monthly acquisition cohorts
 table mart_cohort_retention
+	lineageTag: 4ac4f2fb-8b06-5b15-8b3d-66850da39733
 
 	column cohort_month
 		dataType: dateTime
+		formatString: yyyy-mm-dd
+		lineageTag: f9a896d6-e131-5ac2-9fcf-36bb24e90a69
 		summarizeBy: none
 		sourceColumn: cohort_month
-		annotation UnderlyingDateTimeDataType = Date
+
+		annotation SummarizationSetBy = Automatic
 
 	column activity_month
 		dataType: dateTime
+		formatString: yyyy-mm-dd
+		lineageTag: 139b4af8-e931-5cfc-b004-8b2ac7a91b50
 		summarizeBy: none
 		sourceColumn: activity_month
-		annotation UnderlyingDateTimeDataType = Date
+
+		annotation SummarizationSetBy = Automatic
 
 	column cohort_age_months
 		dataType: int64
+		formatString: 0
+		lineageTag: b2f68f4f-3edd-5feb-8039-6b067edd0f81
 		summarizeBy: none
 		sourceColumn: cohort_age_months
 
+		annotation SummarizationSetBy = Automatic
+
 	column active_customers
 		dataType: int64
+		formatString: 0
+		lineageTag: 99b67493-6b4f-5fe7-9011-79453eba6b96
 		summarizeBy: none
 		sourceColumn: active_customers
+
+		annotation SummarizationSetBy = Automatic
+
+	column cohort
+		dataType: string
+		lineageTag: 4d85ddb6-09d3-5308-b349-e59104f6f2be
+		summarizeBy: none
+		sourceColumn: cohort
+
+		annotation SummarizationSetBy = Automatic
 
 	partition mart_cohort_retention = m
 		mode: import
 		source =
-			let
-				Source = Parquet.Document(File.Contents(DataFolder & "\\mart_cohort_retention.parquet")
-				)
-			in
-				Source
+				let
+				    Source = Parquet.Document ( File.Contents ( DataFolder & "\mart_cohort_retention.parquet" ) ),
+				    Typed = Table.TransformColumnTypes ( Source, {{"cohort_month", type date}, {"activity_month", type date}, {"cohort_age_months", Int64.Type}, {"active_customers", Int64.Type}} ),
+				    X0 = Table.AddColumn ( Typed, "cohort", each Date.ToText([cohort_month], "yyyy-MM"), type text )
+				in
+				    X0

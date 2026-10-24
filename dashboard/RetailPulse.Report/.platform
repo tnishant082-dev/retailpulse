@@ -1,11 +1,11 @@
 {
- "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
- "metadata": {
-  "type": "Report",
-  "displayName": "RetailPulse"
- },
- "config": {
-  "version": "2.0",
-  "logicalId": "e0000000-0000-0000-0000-0000000000e2"
- }
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "RetailPulse"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "4025cb2c-c203-554f-bb3f-6045577c1dbc"
+  }
 }

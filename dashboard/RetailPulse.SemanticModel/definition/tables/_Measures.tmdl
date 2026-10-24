@@ -1,199 +1,276 @@
 table _Measures
+	lineageTag: 2e9691ee-5819-5c90-90a9-ef26ddf1477b
 
-	/// Revenue
-	measure 'Revenue' = SUM(fact_sales[line_revenue])
-		formatString: #,##0
+	measure 'Revenue' = SUM ( fact_sales[line_revenue] )
+		formatString: £#,0
+		displayFolder: Sales
+		lineageTag: 7ec75c90-9341-5d04-b4a8-0ba4b9e07de9
 
-	/// Orders
-	measure 'Orders' = DISTINCTCOUNT(fact_sales[invoice_no])
-		formatString: #,##0
+	measure 'Orders' = DISTINCTCOUNT ( fact_sales[invoice_no] )
+		formatString: #,0
+		displayFolder: Sales
+		lineageTag: fe525e66-0373-5880-8017-5336a4e4361b
 
-	/// Units
-	measure 'Units' = SUM(fact_sales[quantity])
-		formatString: #,##0
+	measure 'Units' = SUM ( fact_sales[quantity] )
+		formatString: #,0
+		displayFolder: Sales
+		lineageTag: 1a05f205-1df7-535f-89aa-82766db6d894
 
-	/// Customers
-	measure 'Customers' = DISTINCTCOUNT(fact_sales[customer_id])
-		formatString: #,##0
+	measure 'Customers' = DISTINCTCOUNTNOBLANK ( fact_sales[customer_id] )
+		formatString: #,0
+		displayFolder: Sales
+		lineageTag: cb99e811-4da6-5b49-8f9d-44fdead1fc4c
 
-	/// AOV
-	measure 'AOV' = DIVIDE([Revenue],[Orders])
-		formatString: #,##0.00
+	measure 'AOV' = DIVIDE ( [Revenue], [Orders] )
+		formatString: £#,0.00
+		displayFolder: Sales
+		lineageTag: 64c95183-abc1-516a-bc01-208b0b9422e8
 
-	/// Return Revenue
-	measure 'Return Revenue' = SUM(fact_returns[line_revenue])
-		formatString: #,##0
+	measure 'Products Sold' = DISTINCTCOUNT ( fact_sales[stock_code] )
+		formatString: #,0
+		displayFolder: Sales
+		lineageTag: b14e48f2-3934-5208-b693-bcaa1efa6867
 
-	/// Return Revenue Abs
-	measure 'Return Revenue Abs' = ABS([Return Revenue])
-		formatString: #,##0
+	measure 'Countries' = DISTINCTCOUNT ( fact_sales[country] )
+		formatString: #,0
+		displayFolder: Sales
+		lineageTag: ef55eb1b-d470-53b4-9e7d-fddd105a6189
 
-	/// Return Rate %
-	measure 'Return Rate %' = DIVIDE([Return Revenue Abs],[Revenue])
+	measure 'Revenue per Customer' = DIVIDE ( [Revenue], [Customers] )
+		formatString: £#,0
+		displayFolder: Sales
+		lineageTag: 88195336-64a8-57ef-af09-f0cba84c5df8
+
+	measure 'Revenue Share' = DIVIDE ( [Revenue], CALCULATE ( [Revenue], ALL ( dim_country ) ) )
+		formatString: 0.0%
+		displayFolder: Sales
+		lineageTag: 691da259-3319-5436-b73d-286f2184147a
+
+	measure 'Revenue PY' = CALCULATE ( [Revenue], SAMEPERIODLASTYEAR ( dim_date[date] ) )
+		formatString: £#,0
+		displayFolder: Time
+		lineageTag: b14bd482-07f2-51c3-9e66-1c738129caee
+
+	measure 'Revenue YoY %' = VAR py = [Revenue PY] RETURN IF ( NOT ISBLANK ( py ), DIVIDE ( [Revenue] - py, py ) )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: Time
+		lineageTag: 41feb870-94ac-5914-b8b7-e2e305e6ecfd
+
+	measure 'Revenue Running Total' = VAR d = MAX ( dim_date[date] ) RETURN CALCULATE ( [Revenue], dim_date[date] <= d, ALL ( dim_date ) )
+		formatString: £#,0
+		displayFolder: Time
+		lineageTag: cb1610d6-babc-5745-92b0-f64de879a69a
+
+	measure 'Trading Days' = COUNTROWS ( dim_date )
+		formatString: #,0
+		displayFolder: Time
+		lineageTag: b7f29190-c08f-5ab4-907b-1312c6c1e636
+
+	measure 'Revenue per Trading Day' = DIVIDE ( [Revenue], [Trading Days] )
+		formatString: £#,0
+		displayFolder: Time
+		lineageTag: b337bb13-07e8-5878-b243-79bc1b2e9c44
+
+	measure 'Return Revenue' = -SUM ( fact_returns[line_revenue] )
+		formatString: £#,0
+		displayFolder: Returns
+		lineageTag: 1e95e8f0-d36b-5f84-b103-800f8de994f0
+
+	measure 'Returned Units' = -SUM ( fact_returns[quantity] )
+		formatString: #,0
+		displayFolder: Returns
+		lineageTag: 0de38692-cc78-559e-a201-cd48e307d617
+
+	measure 'Cancelled Invoices' = DISTINCTCOUNT ( fact_returns[invoice_no] )
+		formatString: #,0
+		displayFolder: Returns
+		lineageTag: ff7cae47-7f09-55d0-974a-bd3f67999198
+
+	measure 'Return Rate %' = DIVIDE ( [Return Revenue], [Revenue] )
 		formatString: 0.00%
+		displayFolder: Returns
+		lineageTag: a93548ef-6488-5e4c-b857-c9bbd4c724c6
 
-	/// Revenue MoM %
-	measure 'Revenue MoM %' = DIVIDE([Revenue]-[Revenue Prev Month],[Revenue Prev Month])
-		formatString: 0.00%
+	measure 'RFM Customers' = COUNTROWS ( rfm_segments )
+		formatString: #,0
+		displayFolder: Customers
+		lineageTag: 1072d47f-d323-59f8-8406-108d1663ae60
 
-	/// Revenue YoY %
-	measure 'Revenue YoY %' = DIVIDE([Revenue]-[Revenue Prev Year],[Revenue Prev Year])
-		formatString: 0.00%
+	measure 'Avg Recency Days' = AVERAGE ( rfm_segments[recency_days] )
+		formatString: #,0
+		displayFolder: Customers
+		lineageTag: a87ee381-2abd-59e9-ab62-5d66c377fd4c
 
-	/// Revenue Prev Month
-	measure 'Revenue Prev Month' = CALCULATE([Revenue], DATEADD(dim_date[date], -1, MONTH))
-		formatString: #,##0
+	measure 'Avg Frequency' = AVERAGE ( rfm_segments[frequency_orders] )
+		formatString: 0.0
+		displayFolder: Customers
+		lineageTag: ab0752bb-6028-5981-a7c3-586e4b3a9daf
 
-	/// Revenue Prev Year
-	measure 'Revenue Prev Year' = CALCULATE([Revenue], DATEADD(dim_date[date], -1, YEAR))
-		formatString: #,##0
+	measure 'Avg Monetary' = AVERAGE ( rfm_segments[monetary_revenue] )
+		formatString: £#,0
+		displayFolder: Customers
+		lineageTag: 8cc47941-ca92-5f9e-a0dd-8978c84d4f70
 
-	/// Revenue Rolling 3M
-	measure 'Revenue Rolling 3M' = CALCULATE([Revenue], DATESINPERIOD(dim_date[date], MAX(dim_date[date]), -3, MONTH))
-		formatString: #,##0
+	measure 'Segment Revenue' = SUM ( rfm_segments[monetary_revenue] )
+		formatString: £#,0
+		displayFolder: Customers
+		lineageTag: f06278b2-ee5b-578b-88b6-e41bcb5ed9a4
 
-	/// Revenue Running Total
-	measure 'Revenue Running Total' = CALCULATE([Revenue], FILTER(ALL(dim_date[date]), dim_date[date] <= MAX(dim_date[date])))
-		formatString: #,##0
+	measure 'Champions %' = DIVIDE ( CALCULATE ( COUNTROWS ( rfm_segments ), rfm_segments[segment] = "Champions" ), CALCULATE ( COUNTROWS ( rfm_segments ), ALL ( rfm_segments[segment] ) ) )
+		formatString: 0.0%
+		displayFolder: Customers
+		lineageTag: 4aa4873e-b5e5-5698-b309-b8297fd778be
 
-	/// New Customers
-	measure 'New Customers' = CALCULATE(DISTINCTCOUNT(dim_customer[customer_id]), DATESBETWEEN(dim_date[date], MIN(dim_date[date]), MAX(dim_date[date])))
-		formatString: #,##0
+	measure 'Cohort Active' = SUM ( mart_cohort_retention[active_customers] )
+		formatString: #,0
+		displayFolder: Cohorts
+		lineageTag: 51e87b71-f12f-5078-9f6f-7ba52a520022
 
-	/// Returning Customers
-	measure 'Returning Customers' = [Customers]-[New Customers]
-		formatString: #,##0
+	measure 'Cohort Size' = CALCULATE ( SUM ( mart_cohort_retention[active_customers] ), ALL ( mart_cohort_retention[cohort_age_months], mart_cohort_retention[activity_month] ), mart_cohort_retention[cohort_age_months] = 0 )
+		formatString: #,0
+		displayFolder: Cohorts
+		lineageTag: 93f7b2c9-08d6-5088-9912-f02c8faf8d10
 
-	/// Avg CLV 6M
-	measure 'Avg CLV 6M' = AVERAGE(clv_scores[clv_6m_pred])
-		formatString: #,##0
+	measure 'Retention %' = DIVIDE ( [Cohort Active], [Cohort Size] )
+		formatString: 0.0%
+		displayFolder: Cohorts
+		lineageTag: c9ab0d35-0d83-563d-b5e5-fb1df431f69c
 
-	/// High Churn Risk Customers
-	measure 'High Churn Risk Customers' = CALCULATE(DISTINCTCOUNT(churn_scores[customer_id]), churn_scores[churn_proba] >= 0.7)
-		formatString: #,##0
+	measure 'Month 1 Retention %' = CALCULATE ( [Retention %], mart_cohort_retention[cohort_age_months] = 1 )
+		formatString: 0.0%
+		displayFolder: Cohorts
+		lineageTag: 6823947b-0284-50c6-b92d-82b8645d2c99
 
-	/// Revenue At Risk
-	measure 'Revenue At Risk' = SUMX(FILTER(churn_scores, churn_scores[churn_proba] >= 0.7), LOOKUPVALUE(mart_customer_rfm[monetary_revenue], mart_customer_rfm[customer_id], churn_scores[customer_id]))
-		formatString: #,##0
+	measure 'Cohorts' = CALCULATE ( DISTINCTCOUNT ( mart_cohort_retention[cohort_month] ) )
+		formatString: #,0
+		displayFolder: Cohorts
+		lineageTag: 0c434eab-6ff0-5e73-b838-64b995b50c2c
 
-	/// Forecast Units
-	measure 'Forecast Units' = SUM(forecast[units])
-		formatString: #,##0
+	measure 'Scored Customers' = COUNTROWS ( churn_scores )
+		formatString: #,0
+		displayFolder: Churn
+		lineageTag: 97ca2bdb-883e-5735-b2b2-08906f33dfe8
 
-	/// Forecast Pred Model
-	measure 'Forecast Pred Model' = SUM(forecast[pred_model])
-		formatString: #,##0
+	measure 'Avg Churn Probability' = AVERAGE ( churn_scores[churn_proba] )
+		formatString: 0.0%
+		displayFolder: Churn
+		lineageTag: e87e2298-951b-5c68-8bf5-1d2408e83b8f
 
-	/// Forecast Pred Baseline
-	measure 'Forecast Pred Baseline' = SUM(forecast[pred_baseline])
-		formatString: #,##0
+	measure 'High Risk Customers' = CALCULATE ( COUNTROWS ( churn_scores ), churn_scores[churn_proba] >= 0.7 )
+		formatString: #,0
+		displayFolder: Churn
+		lineageTag: 94780773-7254-5b99-b130-f71b4595cbc1
 
-	/// Forecast Error Abs
-	measure 'Forecast Error Abs' = SUMX(forecast, ABS(forecast[units]-forecast[pred_model]))
-		formatString: #,##0
+	measure 'High Risk %' = DIVIDE ( [High Risk Customers], [Scored Customers] )
+		formatString: 0.0%
+		displayFolder: Churn
+		lineageTag: b72b5dbd-4fab-567e-be63-13d4c296f95e
 
-	/// Forecast WAPE
-	measure 'Forecast WAPE' = DIVIDE([Forecast Error Abs], SUMX(forecast, ABS(forecast[units])))
-		formatString: 0.00%
+	measure 'Actual Churn Rate' = AVERAGE ( churn_scores[churned] )
+		formatString: 0.0%
+		displayFolder: Churn
+		lineageTag: 52e17672-fbda-5f8f-9923-d2844634ac50
 
-	/// ABC A Share
-	measure 'ABC A Share' = DIVIDE(SUMX(FILTER(mart_product_abc, mart_product_abc[abc_class]="A"), mart_product_abc[revenue]), SUM(mart_product_abc[revenue]))
-		formatString: 0.00%
+	measure 'Revenue at Risk' = CALCULATE ( SUM ( churn_scores[monetary_revenue] ), churn_scores[churn_proba] >= 0.7 )
+		formatString: £#,0
+		displayFolder: Churn
+		lineageTag: 861342d9-0595-5869-a6b1-57f60d26588a
 
-	/// Top Pair Orders
-	measure 'Top Pair Orders' = MAX(mart_basket_pairs[pair_orders])
-		formatString: #,##0
+	measure 'CLV at Risk' = CALCULATE ( SUM ( churn_scores[clv_6m_pred] ), churn_scores[churn_proba] >= 0.7 )
+		formatString: £#,0
+		displayFolder: Churn
+		lineageTag: 89d1397b-9fb6-536a-823d-868d63c283da
 
-	/// Distinct Products
-	measure 'Distinct Products' = DISTINCTCOUNT(fact_sales[stock_code])
-		formatString: #,##0
+	measure 'Avg Predicted CLV' = AVERAGE ( clv_scores[clv_6m_pred] )
+		formatString: £#,0
+		displayFolder: CLV
+		lineageTag: 1ccc15d5-3b9f-5e79-bfb8-f168d1dbd0ae
 
-	/// Orders per Customer
-	measure 'Orders per Customer' = DIVIDE([Orders],[Customers])
-		formatString: #,##0.00
+	measure 'Total Predicted CLV' = SUM ( clv_scores[clv_6m_pred] )
+		formatString: £#,0
+		displayFolder: CLV
+		lineageTag: 2414ffc8-6038-5ce8-b6a0-b73e13b03c95
 
-	/// Revenue per Customer
-	measure 'Revenue per Customer' = DIVIDE([Revenue],[Customers])
-		formatString: #,##0.00
+	measure 'CLV Customers' = COUNTROWS ( clv_scores )
+		formatString: #,0
+		displayFolder: CLV
+		lineageTag: 0e2c4dff-9ac2-59f6-bbbc-277b81107556
 
-	/// Avg Units per Order
-	measure 'Avg Units per Order' = DIVIDE([Units],[Orders])
-		formatString: #,##0.00
+	measure 'Median Predicted CLV' = MEDIAN ( clv_scores[clv_6m_pred] )
+		formatString: £#,0
+		displayFolder: CLV
+		lineageTag: 63222401-ff8c-56b9-9130-8271f28fd7e4
 
-	/// Active Customers (Cohort)
-	measure 'Active Customers (Cohort)' = SUM(mart_cohort_retention[active_customers])
-		formatString: #,##0
+	measure 'ABC Revenue' = SUM ( mart_product_abc[revenue] )
+		formatString: £#,0
+		displayFolder: Products
+		lineageTag: 7e1dc11b-c66f-5d65-b7fe-134a476ee0e1
 
-	/// Cohort Retention %
-	measure 'Cohort Retention %' = DIVIDE(SUM(mart_cohort_retention[active_customers]), CALCULATE(SUM(mart_cohort_retention[active_customers]), mart_cohort_retention[cohort_age_months]=0))
-		formatString: 0.00%
+	measure 'ABC Products' = COUNTROWS ( mart_product_abc )
+		formatString: #,0
+		displayFolder: Products
+		lineageTag: 2bbe1d9b-54bb-55bb-9c79-c803c8c88496
 
-	/// Churn Avg Proba
-	measure 'Churn Avg Proba' = AVERAGE(churn_scores[churn_proba])
-		formatString: 0.000
+	measure 'ABC Revenue Share' = DIVIDE ( [ABC Revenue], CALCULATE ( [ABC Revenue], ALL ( mart_product_abc ) ) )
+		formatString: 0.0%
+		displayFolder: Products
+		lineageTag: 8dc43ae9-e091-581c-bfa2-6e413dee026b
 
-	/// CLV Customers
-	measure 'CLV Customers' = DISTINCTCOUNT(clv_scores[customer_id])
-		formatString: #,##0
+	measure 'Pair Orders' = SUM ( mart_basket_pairs[pair_orders] )
+		formatString: #,0
+		displayFolder: Products
+		lineageTag: 65494698-ba95-58e5-b15d-d9feae027553
 
-	/// RFM Champions
-	measure 'RFM Champions' = CALCULATE(COUNTROWS(rfm_segments), rfm_segments[segment]="Champions")
-		formatString: #,##0
+	measure 'Product Pairs' = COUNTROWS ( mart_basket_pairs )
+		formatString: #,0
+		displayFolder: Products
+		lineageTag: 0c1054dd-4774-5768-81ec-8b10918e650a
 
-	/// RFM Champions %
-	measure 'RFM Champions %' = DIVIDE([RFM Champions], COUNTROWS(rfm_segments))
-		formatString: 0.00%
+	measure 'Top Pair Orders' = MAX ( mart_basket_pairs[pair_orders] )
+		formatString: #,0
+		displayFolder: Products
+		lineageTag: 2bd2bfe7-a0ae-5986-84d5-b98615f594bd
 
-	/// Cancellations Orders
-	measure 'Cancellations Orders' = DISTINCTCOUNT(fact_returns[invoice_no])
-		formatString: #,##0
+	measure 'Actual Units' = SUM ( forecast[units] )
+		formatString: #,0
+		displayFolder: Forecast
+		lineageTag: 41f81189-2dda-5b37-a1e5-4b2fea850cd4
 
-	/// Sales Orders
-	measure 'Sales Orders' = DISTINCTCOUNT(fact_sales[invoice_no])
-		formatString: #,##0
+	measure 'Baseline Units' = SUM ( forecast[pred_baseline] )
+		formatString: #,0
+		displayFolder: Forecast
+		lineageTag: 06c0c3d0-235e-53ac-aefe-378d07a468fd
 
-	/// Cancellation Rate %
-	measure 'Cancellation Rate %' = DIVIDE([Cancellations Orders], [Sales Orders])
-		formatString: 0.00%
+	measure 'Model Units' = SUM ( forecast[pred_model] )
+		formatString: #,0
+		displayFolder: Forecast
+		lineageTag: 40ac1b63-a004-5f3a-936a-a501d11f6b3e
 
-	/// Max Weekly Revenue
-	measure 'Max Weekly Revenue' = MAXX(SUMMARIZE(fact_sales, dim_date[week_of_year], "rev", [Revenue]), [rev])
-		formatString: #,##0
+	measure 'WAPE Model' = DIVIDE ( SUMX ( forecast, ABS ( forecast[units] - forecast[pred_model] ) ), SUM ( forecast[units] ) )
+		formatString: 0.0%
+		displayFolder: Forecast
+		lineageTag: e3f2b572-dbd7-54f6-b663-c8677ea52b61
 
-	/// Revenue Last 30D
-	measure 'Revenue Last 30D' = CALCULATE([Revenue], DATESINPERIOD(dim_date[date], MAX(dim_date[date]), -30, DAY))
-		formatString: #,##0
+	measure 'WAPE Baseline' = DIVIDE ( SUMX ( forecast, ABS ( forecast[units] - forecast[pred_baseline] ) ), SUM ( forecast[units] ) )
+		formatString: 0.0%
+		displayFolder: Forecast
+		lineageTag: f71d00b6-04be-59a1-a368-61167c1c8a57
 
-	/// Revenue Last 90D
-	measure 'Revenue Last 90D' = CALCULATE([Revenue], DATESINPERIOD(dim_date[date], MAX(dim_date[date]), -90, DAY))
-		formatString: #,##0
+	measure 'Forecast Products' = DISTINCTCOUNT ( forecast[stock_code] )
+		formatString: #,0
+		displayFolder: Forecast
+		lineageTag: d28aa37d-6b26-5913-bd97-96e6c3349717
 
-	/// Revenue Share Top Country
-	measure 'Revenue Share Top Country' = DIVIDE([Revenue Top Country],[Revenue])
-		formatString: 0.00%
-
-	/// Revenue Top Country
-	measure 'Revenue Top Country' = CALCULATE([Revenue], TOPN(1, VALUES(dim_country[country]), [Revenue]))
-		formatString: #,##0
-
-	/// Median Order Value
-	measure 'Median Order Value' = MEDIANX(VALUES(fact_sales[invoice_no]), CALCULATE([Revenue]))
-		formatString: #,##0.00
-
-	/// Revenue per Unit
-	measure 'Revenue per Unit' = DIVIDE([Revenue],[Units])
-		formatString: #,##0.00
-
-	column Dummy
-		isHidden
+	column Value
 		dataType: string
+		isHidden
+		lineageTag: 37705944-d256-5aa3-9951-ea57c5d3946c
 		summarizeBy: none
-		sourceColumn: Dummy
+		isNameInferred
+		sourceColumn: [Value]
 
-	partition _Measures = m
+		annotation SummarizationSetBy = Automatic
+
+	partition _Measures = calculated
 		mode: import
-		source =
-			let
-				Source = #table({"Dummy"}, {{null}})
-			in
-				Source
+		source = ROW ( "Value", BLANK () )

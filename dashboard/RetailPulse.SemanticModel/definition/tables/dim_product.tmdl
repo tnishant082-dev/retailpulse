@@ -1,20 +1,42 @@
+/// One row per stock code (trimmed, case-insensitive)
 table dim_product
+	lineageTag: 668b0d19-a1fb-5346-8ff9-c9176d1bc13f
 
 	column stock_code
 		dataType: string
+		lineageTag: fe471b53-a74a-5a3f-b192-d3783f7460f8
 		summarizeBy: none
 		sourceColumn: stock_code
 
+		annotation SummarizationSetBy = Automatic
+
 	column description
 		dataType: string
+		lineageTag: 52c7d32c-b57a-5bce-848d-bd21c9796285
 		summarizeBy: none
 		sourceColumn: description
+
+		annotation SummarizationSetBy = Automatic
+
+	column product
+		dataType: string
+		lineageTag: a2771b39-1a99-5d63-bd61-2f647519c62c
+		summarizeBy: none
+		sourceColumn: product
+
+		annotation SummarizationSetBy = Automatic
 
 	partition dim_product = m
 		mode: import
 		source =
-			let
-				Source = Parquet.Document(File.Contents(DataFolder & "\\dim_product.parquet")
-				)
-			in
-				Source
+				let
+				    Source = Parquet.Document ( File.Contents ( DataFolder & "\dim_product.parquet" ) ),
+				    Typed = Table.TransformColumnTypes ( Source, {{"stock_code", type text}, {"description", type text}} ),
+				    Trimmed = Table.TransformColumns ( Typed, {{"stock_code", Text.Trim, type text}} ),
+				    Ranked = Table.AddColumn ( Trimmed, "desc_rank", each if [description] = null then 2 else if Text.Upper ( [description] ) = [description] then 0 else 1, Int64.Type ),
+				    Sorted = Table.Buffer ( Table.Sort ( Ranked, {{"desc_rank", Order.Ascending}, {"description", Order.Ascending}} ) ),
+				    Deduped = Table.Distinct ( Sorted, {"stock_code", Comparer.OrdinalIgnoreCase} ),
+				    Clean = Table.RemoveColumns ( Deduped, {"desc_rank"} ),
+				    X0 = Table.AddColumn ( Clean, "product", each if [description] = null then [stock_code] else [stock_code] & " " & [description], type text )
+				in
+				    X0

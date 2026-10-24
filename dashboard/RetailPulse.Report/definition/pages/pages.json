@@ -1,19 +1,19 @@
 {
- "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/pagesMetadata/1.0.0/schema.json",
- "pageOrder": [
-  "page1",
-  "page2",
-  "page3",
-  "page4",
-  "page5",
-  "page6",
-  "page7",
-  "page8",
-  "page9",
-  "page10",
-  "page11",
-  "page12",
-  "page13"
- ],
- "activePageName": "page1"
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/pagesMetadata/1.0.0/schema.json",
+  "pageOrder": [
+    "p01_executive",
+    "p02_trends",
+    "p03_seasonality",
+    "p04_country",
+    "p05_rfm",
+    "p06_cohorts",
+    "p07_churn",
+    "p08_clv",
+    "p09_abc",
+    "p10_basket",
+    "p11_returns",
+    "p12_forecast",
+    "p13_rescue"
+  ],
+  "activePageName": "p01_executive"
 }

@@ -1,55 +1,43 @@
-relationship c0000000-0000-0000-0000-000000000001
- fromColumn: fact_sales.stock_code
- toColumn: dim_product.stock_code
+relationship 92719a80-8900-5e93-83de-4f81aa69ea59
+	fromColumn: fact_sales.date_key
+	toColumn: dim_date.date_key
 
-relationship c0000000-0000-0000-0000-000000000002
- fromColumn: fact_sales.customer_id
- toColumn: dim_customer.customer_id
+relationship 9c909226-3982-5627-b324-bdf96445705a
+	fromColumn: fact_sales.customer_id
+	toColumn: dim_customer.customer_id
 
-relationship c0000000-0000-0000-0000-000000000003
- fromColumn: fact_sales.country
- toColumn: dim_country.country
+relationship db861e9b-5a14-54de-87e3-721f301e5648
+	fromColumn: fact_sales.stock_code
+	toColumn: dim_product.stock_code
 
-relationship c0000000-0000-0000-0000-000000000004
- fromColumn: fact_sales.date_key
- toColumn: dim_date.date_key
+relationship 209faabf-55b5-51ef-926f-90be33258e36
+	fromColumn: fact_sales.country
+	toColumn: dim_country.country
 
-relationship c0000000-0000-0000-0000-000000000005
- fromColumn: fact_returns.stock_code
- toColumn: dim_product.stock_code
+relationship 64d4aff1-733d-58b0-ad04-718aaf4f0694
+	fromColumn: fact_returns.date_key
+	toColumn: dim_date.date_key
 
-relationship c0000000-0000-0000-0000-000000000006
- fromColumn: fact_returns.customer_id
- toColumn: dim_customer.customer_id
+relationship ff06c5c8-a3e5-5261-95eb-bb45241d94b1
+	fromColumn: fact_returns.stock_code
+	toColumn: dim_product.stock_code
 
-relationship c0000000-0000-0000-0000-000000000007
- fromColumn: fact_returns.country
- toColumn: dim_country.country
+relationship b14fe502-fcd6-571d-8f2a-a81c002ec92f
+	fromColumn: fact_returns.country
+	toColumn: dim_country.country
 
-relationship c0000000-0000-0000-0000-000000000008
- fromColumn: fact_returns.date_key
- toColumn: dim_date.date_key
+relationship dcbdbcbe-c481-5c63-aa52-643ccc3be5ac
+	fromColumn: rfm_segments.customer_id
+	toColumn: dim_customer.customer_id
 
-relationship c0000000-0000-0000-0000-000000000009
- fromColumn: mart_customer_rfm.customer_id
- toColumn: dim_customer.customer_id
+relationship 2d3ed06b-0476-55c5-8f1b-1839112ac151
+	fromColumn: clv_scores.customer_id
+	toColumn: dim_customer.customer_id
 
-relationship c0000000-0000-0000-0000-000000000010
- fromColumn: rfm_segments.customer_id
- toColumn: dim_customer.customer_id
+relationship 60ecef97-a693-54ad-a1a6-dbb33280e8b9
+	fromColumn: mart_product_abc.stock_code
+	toColumn: dim_product.stock_code
 
-relationship c0000000-0000-0000-0000-000000000011
- fromColumn: churn_scores.customer_id
- toColumn: dim_customer.customer_id
-
-relationship c0000000-0000-0000-0000-000000000012
- fromColumn: clv_scores.customer_id
- toColumn: dim_customer.customer_id
-
-relationship c0000000-0000-0000-0000-000000000013
- fromColumn: forecast.stock_code
- toColumn: dim_product.stock_code
-
-relationship c0000000-0000-0000-0000-000000000014
- fromColumn: mart_product_abc.stock_code
- toColumn: dim_product.stock_code
+relationship e432c690-27e2-585b-8c68-88cffa089807
+	fromColumn: forecast.stock_code
+	toColumn: dim_product.stock_code

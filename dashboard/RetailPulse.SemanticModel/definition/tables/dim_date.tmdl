@@ -1,54 +1,135 @@
+/// Trading days 2009-12-01 to 2011-12-09
 table dim_date
+	lineageTag: d4121b18-de47-52c3-a471-456e10604a1f
 	dataCategory: Time
-
 
 	column date_key
 		dataType: int64
+		formatString: 0
+		lineageTag: 7ca2f053-5edf-5f9e-9e0e-8d63a20c1344
 		summarizeBy: none
 		sourceColumn: date_key
 
+		annotation SummarizationSetBy = Automatic
+
 	column date
-		isKey
 		dataType: dateTime
+		formatString: yyyy-mm-dd
+		isKey
+		lineageTag: c96299a6-fef4-59e7-871a-af42ffdd0571
 		summarizeBy: none
 		sourceColumn: date
-		annotation UnderlyingDateTimeDataType = Date
+
+		annotation SummarizationSetBy = Automatic
 
 	column year
 		dataType: int64
+		formatString: 0
+		lineageTag: ce515b68-a164-56cf-adc3-a3989081f572
 		summarizeBy: none
 		sourceColumn: year
 
+		annotation SummarizationSetBy = Automatic
+
 	column month
 		dataType: int64
+		formatString: 0
+		lineageTag: 36963b62-1aaa-56b6-95f5-d0c02bbf275f
 		summarizeBy: none
 		sourceColumn: month
 
+		annotation SummarizationSetBy = Automatic
+
 	column day
 		dataType: int64
+		formatString: 0
+		lineageTag: 92aa2b1b-967a-527f-9d1d-863a49702557
 		summarizeBy: none
 		sourceColumn: day
 
+		annotation SummarizationSetBy = Automatic
+
 	column day_of_week
 		dataType: int64
+		formatString: 0
+		lineageTag: e1ff8def-9355-5e70-b30d-0530769e17c7
 		summarizeBy: none
 		sourceColumn: day_of_week
 
+		annotation SummarizationSetBy = Automatic
+
 	column week_of_year
 		dataType: int64
+		formatString: 0
+		lineageTag: 7b32de3c-3e2b-57b6-8f86-ab4f65843942
 		summarizeBy: none
 		sourceColumn: week_of_year
 
+		annotation SummarizationSetBy = Automatic
+
 	column quarter
 		dataType: int64
+		formatString: 0
+		lineageTag: b43369d0-292c-53a8-a45a-6a5f086aedf6
 		summarizeBy: none
 		sourceColumn: quarter
+
+		annotation SummarizationSetBy = Automatic
+
+	column month_start
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		lineageTag: b37cd3ec-dc39-5c74-888f-3a05895bb01e
+		summarizeBy: none
+		sourceColumn: month_start
+
+		annotation SummarizationSetBy = Automatic
+
+	column year_month
+		dataType: string
+		lineageTag: 77dd25a9-983b-5af5-83cd-72102f8f111e
+		summarizeBy: none
+		sourceColumn: year_month
+
+		annotation SummarizationSetBy = Automatic
+
+	column month_name
+		dataType: string
+		lineageTag: 4fcc09d6-e0f9-59aa-9079-508fc541be17
+		summarizeBy: none
+		sourceColumn: month_name
+		sortByColumn: month
+
+		annotation SummarizationSetBy = Automatic
+
+	column week_start
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		lineageTag: 994e97c2-70ef-5c87-ac7f-033eff74cceb
+		summarizeBy: none
+		sourceColumn: week_start
+
+		annotation SummarizationSetBy = Automatic
+
+	column weekday_name
+		dataType: string
+		lineageTag: 5934cef8-22ee-547b-b216-739b9e7e514d
+		summarizeBy: none
+		sourceColumn: weekday_name
+		sortByColumn: day_of_week
+
+		annotation SummarizationSetBy = Automatic
 
 	partition dim_date = m
 		mode: import
 		source =
-			let
-				Source = Parquet.Document(File.Contents(DataFolder & "\\dim_date.parquet")
-				)
-			in
-				Source
+				let
+				    Source = Parquet.Document ( File.Contents ( DataFolder & "\dim_date.parquet" ) ),
+				    Typed = Table.TransformColumnTypes ( Source, {{"date_key", Int64.Type}, {"date", type date}, {"year", Int64.Type}, {"month", Int64.Type}, {"day", Int64.Type}, {"day_of_week", Int64.Type}, {"week_of_year", Int64.Type}, {"quarter", Int64.Type}} ),
+				    X0 = Table.AddColumn ( Typed, "month_start", each Date.StartOfMonth([date]), type date ),
+				    X1 = Table.AddColumn ( X0, "year_month", each Date.ToText([date], "yyyy-MM"), type text ),
+				    X2 = Table.AddColumn ( X1, "month_name", each Date.ToText([date], "MMM"), type text ),
+				    X3 = Table.AddColumn ( X2, "week_start", each Date.StartOfWeek([date], Day.Monday), type date ),
+				    X4 = Table.AddColumn ( X3, "weekday_name", each Date.ToText([date], "ddd"), type text )
+				in
+				    X4
