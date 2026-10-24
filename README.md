@@ -120,4 +120,6 @@ Walkthrough video: [screenshots/retailpulse-powerbi-walkthrough.mp4](screenshots
 ![Cohort Retention](screenshots/powerbi/06_cohort_retention.png)
 ![Revenue Rescue Plan](screenshots/powerbi/13_revenue_rescue_plan.png)
 
+Open dashboard/RetailPulse.pbix in Power BI Desktop (data included), or the .pbip project to see the model as text.
+
 All 13 page screenshots are in `screenshots/powerbi/`.
