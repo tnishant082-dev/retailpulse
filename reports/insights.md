@@ -1,0 +1,21 @@
+## Dashboard insight numbers (computed with DuckDB)
+
+- **date range**: 2009-12-01 to 2011-12-09 (as-of 2011-12-09)
+- **revenue**: 20,755,215
+- **orders**: 45,336
+- **customers**: 5,881
+- **cancellations (distinct invoices)**: 8,292
+- **return rate (by revenue)**: 7.34%
+- **top country**: United Kingdom (17,655,380 revenue)
+- **peak week (by revenue)**: week of 2010-12-06 (582,070 revenue)
+- **peak month (by revenue)**: 2011-11 (1,503,867 revenue)
+- **top product (by revenue)**: ? (1,272,230 revenue)
+- **ABC A share (by revenue)**: 80.0%
+- **top basket pair (by orders)**: 22386 + 85099B (1,426 orders)
+- **biggest cohort (month 0 size)**: 2009-12 (955 customers)
+- **month-1 retention for biggest cohort**: 35.3%
+- **champions share**: 22.2%
+- **high churn risk customers (p>=0.7)**: 3,241
+- **revenue at risk (sum RFM monetary for p>=0.7)**: 3,496,501
+- **avg predicted CLV (6m)**: 640
+- **forecast WAPE (model, from reports/metrics.json)**: 0.715

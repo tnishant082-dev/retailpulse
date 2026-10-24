@@ -1,0 +1,38 @@
+{
+ "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+ "name": "2f7f8018dd860895db98",
+ "position": {
+  "x": 1040,
+  "y": 160,
+  "z": 9000,
+  "width": 220,
+  "height": 120,
+  "tabOrder": 21
+ },
+ "visual": {
+  "visualType": "slicer",
+  "query": {
+   "queryState": {
+    "Values": {
+     "projections": [
+      {
+       "field": {
+        "Column": {
+         "Expression": {
+          "SourceRef": {
+           "Entity": "dim_country"
+          }
+         },
+         "Property": "country"
+        }
+       },
+       "queryRef": "dim_country.country",
+       "nativeQueryRef": "country"
+      }
+     ]
+    }
+   }
+  },
+  "drillFilterOtherVisuals": true
+ }
+}

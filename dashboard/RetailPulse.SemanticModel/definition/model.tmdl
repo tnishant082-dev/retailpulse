@@ -1,0 +1,26 @@
+model Model
+ culture: en-GB
+ defaultPowerBIDataSourceVersion: powerBI_V3
+ discourageImplicitMeasures
+ sourceQueryCulture: en-US
+
+annotation PBI_ProTooling = ["DevMode","CopilotTooling"]
+
+ref table dim_country
+ref table dim_customer
+ref table dim_date
+ref table dim_product
+ref table fact_sales
+ref table fact_returns
+ref table mart_customer_rfm
+ref table mart_monthly_kpis
+ref table mart_cohort_retention
+ref table mart_product_abc
+ref table mart_basket_pairs
+ref table rfm_segments
+ref table churn_scores
+ref table clv_scores
+ref table forecast
+ref table _Measures
+
+ref cultureInfo en-GB

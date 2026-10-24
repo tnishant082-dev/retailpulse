@@ -1,0 +1,31 @@
+table mart_cohort_retention
+
+	column cohort_month
+		dataType: dateTime
+		summarizeBy: none
+		sourceColumn: cohort_month
+		annotation UnderlyingDateTimeDataType = Date
+
+	column activity_month
+		dataType: dateTime
+		summarizeBy: none
+		sourceColumn: activity_month
+		annotation UnderlyingDateTimeDataType = Date
+
+	column cohort_age_months
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: cohort_age_months
+
+	column active_customers
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: active_customers
+
+	partition mart_cohort_retention = m
+		mode: import
+		source =
+			let
+				Source = Parquet.Document(File.Contents(DataFolder & "\\mart_cohort_retention.parquet"))
+			in
+				Source

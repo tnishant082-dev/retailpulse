@@ -1,0 +1,29 @@
+table dim_customer
+
+	column customer_id
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: customer_id
+
+	column first_purchase_ts
+		dataType: dateTime
+		summarizeBy: none
+		sourceColumn: first_purchase_ts
+
+	column last_purchase_ts
+		dataType: dateTime
+		summarizeBy: none
+		sourceColumn: last_purchase_ts
+
+	column country
+		dataType: string
+		summarizeBy: none
+		sourceColumn: country
+
+	partition dim_customer = m
+		mode: import
+		source =
+			let
+				Source = Parquet.Document(File.Contents(DataFolder & "\\dim_customer.parquet"))
+			in
+				Source

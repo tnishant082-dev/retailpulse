@@ -1,0 +1,29 @@
+table churn_scores
+
+	column customer_id
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: customer_id
+
+	column cutoff_date
+		dataType: dateTime
+		summarizeBy: none
+		sourceColumn: cutoff_date
+
+	column churned
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: churned
+
+	column churn_proba
+		dataType: double
+		summarizeBy: none
+		sourceColumn: churn_proba
+
+	partition churn_scores = m
+		mode: import
+		source =
+			let
+				Source = Parquet.Document(File.Contents(DataFolder & "\\churn_scores.parquet"))
+			in
+				Source

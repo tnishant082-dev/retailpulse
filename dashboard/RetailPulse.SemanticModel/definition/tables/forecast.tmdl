@@ -1,0 +1,34 @@
+table forecast
+
+	column stock_code
+		dataType: string
+		summarizeBy: none
+		sourceColumn: stock_code
+
+	column week_start
+		dataType: dateTime
+		summarizeBy: none
+		sourceColumn: week_start
+
+	column units
+		dataType: double
+		summarizeBy: none
+		sourceColumn: units
+
+	column pred_baseline
+		dataType: double
+		summarizeBy: none
+		sourceColumn: pred_baseline
+
+	column pred_model
+		dataType: double
+		summarizeBy: none
+		sourceColumn: pred_model
+
+	partition forecast = m
+		mode: import
+		source =
+			let
+				Source = Parquet.Document(File.Contents(DataFolder & "\\forecast.parquet"))
+			in
+				Source

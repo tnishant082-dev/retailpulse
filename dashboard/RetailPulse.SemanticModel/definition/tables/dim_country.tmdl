@@ -1,0 +1,14 @@
+table dim_country
+
+	column country
+		dataType: string
+		summarizeBy: none
+		sourceColumn: country
+
+	partition dim_country = m
+		mode: import
+		source =
+			let
+				Source = Parquet.Document(File.Contents(DataFolder & "\\dim_country.parquet"))
+			in
+				Source

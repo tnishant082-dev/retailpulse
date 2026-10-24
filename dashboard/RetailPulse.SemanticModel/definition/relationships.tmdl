@@ -1,0 +1,55 @@
+relationship c0000000-0000-0000-0000-000000000001
+ fromColumn: fact_sales.stock_code
+ toColumn: dim_product.stock_code
+
+relationship c0000000-0000-0000-0000-000000000002
+ fromColumn: fact_sales.customer_id
+ toColumn: dim_customer.customer_id
+
+relationship c0000000-0000-0000-0000-000000000003
+ fromColumn: fact_sales.country
+ toColumn: dim_country.country
+
+relationship c0000000-0000-0000-0000-000000000004
+ fromColumn: fact_sales.date_key
+ toColumn: dim_date.date_key
+
+relationship c0000000-0000-0000-0000-000000000005
+ fromColumn: fact_returns.stock_code
+ toColumn: dim_product.stock_code
+
+relationship c0000000-0000-0000-0000-000000000006
+ fromColumn: fact_returns.customer_id
+ toColumn: dim_customer.customer_id
+
+relationship c0000000-0000-0000-0000-000000000007
+ fromColumn: fact_returns.country
+ toColumn: dim_country.country
+
+relationship c0000000-0000-0000-0000-000000000008
+ fromColumn: fact_returns.date_key
+ toColumn: dim_date.date_key
+
+relationship c0000000-0000-0000-0000-000000000009
+ fromColumn: mart_customer_rfm.customer_id
+ toColumn: dim_customer.customer_id
+
+relationship c0000000-0000-0000-0000-000000000010
+ fromColumn: rfm_segments.customer_id
+ toColumn: dim_customer.customer_id
+
+relationship c0000000-0000-0000-0000-000000000011
+ fromColumn: churn_scores.customer_id
+ toColumn: dim_customer.customer_id
+
+relationship c0000000-0000-0000-0000-000000000012
+ fromColumn: clv_scores.customer_id
+ toColumn: dim_customer.customer_id
+
+relationship c0000000-0000-0000-0000-000000000013
+ fromColumn: forecast.stock_code
+ toColumn: dim_product.stock_code
+
+relationship c0000000-0000-0000-0000-000000000014
+ fromColumn: mart_product_abc.stock_code
+ toColumn: dim_product.stock_code

@@ -1,0 +1,4 @@
+/// Local folder containing `data/powerbi/*.parquet` exports
+expression DataFolder = "C:\Users\nishant\retailpulse\data\powerbi" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+
+ annotation PBI_ResultType = Text

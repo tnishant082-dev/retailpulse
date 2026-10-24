@@ -1,0 +1,24 @@
+table mart_basket_pairs
+
+	column product_a
+		dataType: string
+		summarizeBy: none
+		sourceColumn: product_a
+
+	column product_b
+		dataType: string
+		summarizeBy: none
+		sourceColumn: product_b
+
+	column pair_orders
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: pair_orders
+
+	partition mart_basket_pairs = m
+		mode: import
+		source =
+			let
+				Source = Parquet.Document(File.Contents(DataFolder & "\\mart_basket_pairs.parquet"))
+			in
+				Source

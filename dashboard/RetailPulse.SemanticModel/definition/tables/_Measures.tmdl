@@ -1,0 +1,194 @@
+table _Measures
+
+	/// Revenue
+	measure 'Revenue' = SUM(fact_sales[line_revenue])
+		formatString: #,##0
+
+	/// Orders
+	measure 'Orders' = DISTINCTCOUNT(fact_sales[invoice_no])
+		formatString: #,##0
+
+	/// Units
+	measure 'Units' = SUM(fact_sales[quantity])
+		formatString: #,##0
+
+	/// Customers
+	measure 'Customers' = DISTINCTCOUNT(fact_sales[customer_id])
+		formatString: #,##0
+
+	/// AOV
+	measure 'AOV' = DIVIDE([Revenue],[Orders])
+		formatString: #,##0.00
+
+	/// Return Revenue
+	measure 'Return Revenue' = SUM(fact_returns[line_revenue])
+		formatString: #,##0
+
+	/// Return Revenue Abs
+	measure 'Return Revenue Abs' = ABS([Return Revenue])
+		formatString: #,##0
+
+	/// Return Rate %
+	measure 'Return Rate %' = DIVIDE([Return Revenue Abs],[Revenue])
+		formatString: 0.00%
+
+	/// Revenue MoM %
+	measure 'Revenue MoM %' = DIVIDE([Revenue]-[Revenue Prev Month],[Revenue Prev Month])
+		formatString: 0.00%
+
+	/// Revenue YoY %
+	measure 'Revenue YoY %' = DIVIDE([Revenue]-[Revenue Prev Year],[Revenue Prev Year])
+		formatString: 0.00%
+
+	/// Revenue Prev Month
+	measure 'Revenue Prev Month' = CALCULATE([Revenue], DATEADD(dim_date[date], -1, MONTH))
+		formatString: #,##0
+
+	/// Revenue Prev Year
+	measure 'Revenue Prev Year' = CALCULATE([Revenue], DATEADD(dim_date[date], -1, YEAR))
+		formatString: #,##0
+
+	/// Revenue Rolling 3M
+	measure 'Revenue Rolling 3M' = CALCULATE([Revenue], DATESINPERIOD(dim_date[date], MAX(dim_date[date]), -3, MONTH))
+		formatString: #,##0
+
+	/// Revenue Running Total
+	measure 'Revenue Running Total' = CALCULATE([Revenue], FILTER(ALL(dim_date[date]), dim_date[date] <= MAX(dim_date[date])))
+		formatString: #,##0
+
+	/// New Customers
+	measure 'New Customers' = CALCULATE(DISTINCTCOUNT(dim_customer[customer_id]), DATESBETWEEN(dim_date[date], MIN(dim_date[date]), MAX(dim_date[date])))
+		formatString: #,##0
+
+	/// Returning Customers
+	measure 'Returning Customers' = [Customers]-[New Customers]
+		formatString: #,##0
+
+	/// Avg CLV 6M
+	measure 'Avg CLV 6M' = AVERAGE(clv_scores[clv_6m_pred])
+		formatString: #,##0
+
+	/// High Churn Risk Customers
+	measure 'High Churn Risk Customers' = CALCULATE(DISTINCTCOUNT(churn_scores[customer_id]), churn_scores[churn_proba] >= 0.7)
+		formatString: #,##0
+
+	/// Revenue At Risk
+	measure 'Revenue At Risk' = SUMX(FILTER(churn_scores, churn_scores[churn_proba] >= 0.7), LOOKUPVALUE(mart_customer_rfm[monetary_revenue], mart_customer_rfm[customer_id], churn_scores[customer_id]))
+		formatString: #,##0
+
+	/// Forecast Units
+	measure 'Forecast Units' = SUM(forecast[units])
+		formatString: #,##0
+
+	/// Forecast Pred Model
+	measure 'Forecast Pred Model' = SUM(forecast[pred_model])
+		formatString: #,##0
+
+	/// Forecast Pred Baseline
+	measure 'Forecast Pred Baseline' = SUM(forecast[pred_baseline])
+		formatString: #,##0
+
+	/// Forecast Error Abs
+	measure 'Forecast Error Abs' = SUMX(forecast, ABS(forecast[units]-forecast[pred_model]))
+		formatString: #,##0
+
+	/// Forecast WAPE
+	measure 'Forecast WAPE' = DIVIDE([Forecast Error Abs], SUMX(forecast, ABS(forecast[units])))
+		formatString: 0.00%
+
+	/// ABC A Share
+	measure 'ABC A Share' = DIVIDE(SUMX(FILTER(mart_product_abc, mart_product_abc[abc_class]="A"), mart_product_abc[revenue]), SUM(mart_product_abc[revenue]))
+		formatString: 0.00%
+
+	/// Top Pair Orders
+	measure 'Top Pair Orders' = MAX(mart_basket_pairs[pair_orders])
+		formatString: #,##0
+
+	/// Distinct Products
+	measure 'Distinct Products' = DISTINCTCOUNT(fact_sales[stock_code])
+		formatString: #,##0
+
+	/// Orders per Customer
+	measure 'Orders per Customer' = DIVIDE([Orders],[Customers])
+		formatString: #,##0.00
+
+	/// Revenue per Customer
+	measure 'Revenue per Customer' = DIVIDE([Revenue],[Customers])
+		formatString: #,##0.00
+
+	/// Avg Units per Order
+	measure 'Avg Units per Order' = DIVIDE([Units],[Orders])
+		formatString: #,##0.00
+
+	/// Active Customers (Cohort)
+	measure 'Active Customers (Cohort)' = SUM(mart_cohort_retention[active_customers])
+		formatString: #,##0
+
+	/// Cohort Retention %
+	measure 'Cohort Retention %' = DIVIDE(SUM(mart_cohort_retention[active_customers]), CALCULATE(SUM(mart_cohort_retention[active_customers]), mart_cohort_retention[cohort_age_months]=0))
+		formatString: 0.00%
+
+	/// Churn Avg Proba
+	measure 'Churn Avg Proba' = AVERAGE(churn_scores[churn_proba])
+		formatString: 0.000
+
+	/// CLV Customers
+	measure 'CLV Customers' = DISTINCTCOUNT(clv_scores[customer_id])
+		formatString: #,##0
+
+	/// RFM Champions
+	measure 'RFM Champions' = CALCULATE(COUNTROWS(rfm_segments), rfm_segments[segment]="Champions")
+		formatString: #,##0
+
+	/// RFM Champions %
+	measure 'RFM Champions %' = DIVIDE([RFM Champions], COUNTROWS(rfm_segments))
+		formatString: 0.00%
+
+	/// Cancellations Orders
+	measure 'Cancellations Orders' = DISTINCTCOUNT(fact_returns[invoice_no])
+		formatString: #,##0
+
+	/// Sales Orders
+	measure 'Sales Orders' = DISTINCTCOUNT(fact_sales[invoice_no])
+		formatString: #,##0
+
+	/// Cancellation Rate %
+	measure 'Cancellation Rate %' = DIVIDE([Cancellations Orders], [Sales Orders])
+		formatString: 0.00%
+
+	/// Max Weekly Revenue
+	measure 'Max Weekly Revenue' = MAXX(SUMMARIZE(fact_sales, dim_date[week_of_year], "rev", [Revenue]), [rev])
+		formatString: #,##0
+
+	/// Revenue Last 30D
+	measure 'Revenue Last 30D' = CALCULATE([Revenue], DATESINPERIOD(dim_date[date], MAX(dim_date[date]), -30, DAY))
+		formatString: #,##0
+
+	/// Revenue Last 90D
+	measure 'Revenue Last 90D' = CALCULATE([Revenue], DATESINPERIOD(dim_date[date], MAX(dim_date[date]), -90, DAY))
+		formatString: #,##0
+
+	/// Revenue Share Top Country
+	measure 'Revenue Share Top Country' = DIVIDE([Revenue Top Country],[Revenue])
+		formatString: 0.00%
+
+	/// Revenue Top Country
+	measure 'Revenue Top Country' = CALCULATE([Revenue], TOPN(1, VALUES(dim_country[country]), [Revenue]))
+		formatString: #,##0
+
+	/// Median Order Value
+	measure 'Median Order Value' = MEDIANX(VALUES(fact_sales[invoice_no]), CALCULATE([Revenue]))
+		formatString: #,##0.00
+
+	/// Revenue per Unit
+	measure 'Revenue per Unit' = DIVIDE([Revenue],[Units])
+		formatString: #,##0.00
+
+	column Dummy
+		isHidden
+		summarizeBy: none
+		sourceColumn: [Dummy]
+
+	partition _Measures = calculated
+		mode: import
+		source = ROW("Dummy", BLANK())

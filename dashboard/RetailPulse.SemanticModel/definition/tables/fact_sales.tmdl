@@ -1,0 +1,54 @@
+table fact_sales
+
+	column invoice_no
+		dataType: string
+		summarizeBy: none
+		sourceColumn: invoice_no
+
+	column invoice_ts
+		dataType: dateTime
+		summarizeBy: none
+		sourceColumn: invoice_ts
+
+	column date_key
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: date_key
+
+	column stock_code
+		dataType: string
+		summarizeBy: none
+		sourceColumn: stock_code
+
+	column customer_id
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: customer_id
+
+	column country
+		dataType: string
+		summarizeBy: none
+		sourceColumn: country
+
+	column quantity
+		dataType: double
+		summarizeBy: none
+		sourceColumn: quantity
+
+	column unit_price
+		dataType: double
+		summarizeBy: none
+		sourceColumn: unit_price
+
+	column line_revenue
+		dataType: double
+		summarizeBy: none
+		sourceColumn: line_revenue
+
+	partition fact_sales = m
+		mode: import
+		source =
+			let
+				Source = Parquet.Document(File.Contents(DataFolder & "\\fact_sales.parquet"))
+			in
+				Source

@@ -1,0 +1,54 @@
+table rfm_segments
+
+	column customer_id
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: customer_id
+
+	column recency_days
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: recency_days
+
+	column frequency_orders
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: frequency_orders
+
+	column monetary_revenue
+		dataType: double
+		summarizeBy: none
+		sourceColumn: monetary_revenue
+
+	column r_score
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: r_score
+
+	column f_score
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: f_score
+
+	column m_score
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: m_score
+
+	column rfm_score
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: rfm_score
+
+	column segment
+		dataType: string
+		summarizeBy: none
+		sourceColumn: segment
+
+	partition rfm_segments = m
+		mode: import
+		source =
+			let
+				Source = Parquet.Document(File.Contents(DataFolder & "\\rfm_segments.parquet"))
+			in
+				Source

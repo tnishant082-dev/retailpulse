@@ -1,0 +1,52 @@
+{
+ "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+ "name": "2e35a01379b11ab9920e",
+ "position": {
+  "x": 20,
+  "y": 430,
+  "z": 12000,
+  "width": 1000,
+  "height": 120,
+  "tabOrder": 40
+ },
+ "visual": {
+  "visualType": "tableEx",
+  "query": {
+   "queryState": {
+    "Values": {
+     "projections": [
+      {
+       "field": {
+        "Column": {
+         "Expression": {
+          "SourceRef": {
+           "Entity": "dim_product"
+          }
+         },
+         "Property": "stock_code"
+        }
+       },
+       "queryRef": "dim_product.stock_code",
+       "nativeQueryRef": "stock_code"
+      },
+      {
+       "field": {
+        "Measure": {
+         "Expression": {
+          "SourceRef": {
+           "Entity": "_Measures"
+          }
+         },
+         "Property": "Revenue"
+        }
+       },
+       "queryRef": "_Measures.Revenue",
+       "nativeQueryRef": "Revenue"
+      }
+     ]
+    }
+   }
+  },
+  "drillFilterOtherVisuals": true
+ }
+}

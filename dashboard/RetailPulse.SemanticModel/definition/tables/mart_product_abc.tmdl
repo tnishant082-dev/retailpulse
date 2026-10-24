@@ -1,0 +1,34 @@
+table mart_product_abc
+
+	column stock_code
+		dataType: string
+		summarizeBy: none
+		sourceColumn: stock_code
+
+	column revenue
+		dataType: double
+		summarizeBy: none
+		sourceColumn: revenue
+
+	column revenue_share
+		dataType: double
+		summarizeBy: none
+		sourceColumn: revenue_share
+
+	column cum_share
+		dataType: double
+		summarizeBy: none
+		sourceColumn: cum_share
+
+	column abc_class
+		dataType: string
+		summarizeBy: none
+		sourceColumn: abc_class
+
+	partition mart_product_abc = m
+		mode: import
+		source =
+			let
+				Source = Parquet.Document(File.Contents(DataFolder & "\\mart_product_abc.parquet"))
+			in
+				Source

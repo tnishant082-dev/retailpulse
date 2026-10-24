@@ -1,0 +1,38 @@
+{
+ "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+ "name": "5ed285a05958a13ec2a0",
+ "position": {
+  "x": 770,
+  "y": 70,
+  "z": 6000,
+  "width": 240,
+  "height": 80,
+  "tabOrder": 13
+ },
+ "visual": {
+  "visualType": "card",
+  "query": {
+   "queryState": {
+    "Values": {
+     "projections": [
+      {
+       "field": {
+        "Measure": {
+         "Expression": {
+          "SourceRef": {
+           "Entity": "_Measures"
+          }
+         },
+         "Property": "AOV"
+        }
+       },
+       "queryRef": "_Measures.AOV",
+       "nativeQueryRef": "AOV"
+      }
+     ]
+    }
+   }
+  },
+  "drillFilterOtherVisuals": true
+ }
+}
