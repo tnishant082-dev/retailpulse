@@ -10,9 +10,9 @@ from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_
 from pydantic import BaseModel, Field
 from starlette.responses import Response
 
-from retailpulse.copilot.guardrails import validate_sql
-from retailpulse.copilot.llm import generate_sql
-from retailpulse.copilot.templates import template_sql
+from retailpulse.ask.guardrails import validate_sql
+from retailpulse.ask.llm import generate_sql
+from retailpulse.ask.templates import template_sql
 
 ASK_COUNT = Counter("retailpulse_ask_requests_total", "Total /ask requests", ["mode"])
 ASK_LATENCY = Histogram("retailpulse_ask_latency_seconds", "Latency for /ask", ["mode"])
@@ -59,7 +59,7 @@ def create_app(
     warehouse_db: Path | None = None,
     known_tables: set[str] | None = None,
 ) -> FastAPI:
-    app = FastAPI(title="RetailPulse Copilot", version="0.1.0")
+    app = FastAPI(title="RetailPulse Ask", version="0.1.0")
     db = warehouse_db or default_warehouse_db()
     tables = known_tables or DEFAULT_TABLES
 

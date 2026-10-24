@@ -7,9 +7,9 @@ import uvicorn
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="python -m retailpulse.copilot")
+    p = argparse.ArgumentParser(prog="python -m retailpulse.ask")
     sub = p.add_subparsers(dest="cmd", required=True)
-    s = sub.add_parser("serve", help="run the copilot API")
+    s = sub.add_parser("serve", help="run the ask-your-data API")
     s.add_argument("--host", default="127.0.0.1")
     s.add_argument("--port", default=8000, type=int)
     return p
@@ -18,7 +18,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.cmd == "serve":
-        uvicorn.run("retailpulse.copilot.app:app", host=args.host, port=args.port, reload=False)
+        uvicorn.run("retailpulse.ask.app:app", host=args.host, port=args.port, reload=False)
         return 0
     return 2
 

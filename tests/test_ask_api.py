@@ -5,7 +5,7 @@ from pathlib import Path
 import duckdb
 from fastapi.testclient import TestClient
 
-from retailpulse.copilot.app import create_app
+from retailpulse.ask.app import create_app
 
 
 def _make_db(path: Path) -> None:
@@ -34,7 +34,7 @@ def test_ask_rejects_malicious_sql(tmp_path: Path, monkeypatch) -> None:
     app = create_app(warehouse_db=db, known_tables={"fact_sales", "mart_monthly_kpis"})
 
     monkeypatch.setattr(
-        "retailpulse.copilot.app.generate_sql",
+        "retailpulse.ask.app.generate_sql",
         lambda *_args, **_kw: "DROP TABLE fact_sales",
     )
     client = TestClient(app)
@@ -48,7 +48,7 @@ def test_ask_offline_template_works_without_llm(tmp_path: Path, monkeypatch) -> 
     app = create_app(warehouse_db=db, known_tables={"fact_sales", "mart_monthly_kpis"})
 
     # No LLM configured -> generate_sql returns None
-    monkeypatch.setattr("retailpulse.copilot.app.generate_sql", lambda *_args, **_kw: None)
+    monkeypatch.setattr("retailpulse.ask.app.generate_sql", lambda *_args, **_kw: None)
     client = TestClient(app)
     r = client.post("/ask", json={"question": "monthly revenue"})
     assert r.status_code == 200
@@ -63,7 +63,7 @@ def test_metrics_and_health(tmp_path: Path, monkeypatch) -> None:
     _make_db(db)
     app = create_app(warehouse_db=db, known_tables={"fact_sales", "mart_monthly_kpis"})
     monkeypatch.setattr(
-        "retailpulse.copilot.app.generate_sql",
+        "retailpulse.ask.app.generate_sql",
         lambda *_args, **_kw: "SELECT * FROM fact_sales",
     )
 

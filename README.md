@@ -1,8 +1,12 @@
-## RetailPulse (Milestone 1: ingest + clean)
+## RetailPulse
+
+Churn, CLV and demand forecasting on the UCI Online Retail II dataset (UK gift wholesaler,
+Dec 2009 - Dec 2011). DuckDB warehouse, scikit-learn / lifetimes models tracked in mlflow, a small
+ask-your-data API (question -> SQL) and a Power BI dashboard.
 
 ### Setup
 
-- Create a venv (uses the existing Anaconda Python you specified):
+- Create a venv (Python 3.13):
 
 ```bash
 C:\Users\nishant\anaconda3\python.exe -m venv .venv
@@ -41,18 +45,18 @@ Outputs:
 - `reports/metrics.json`
 - `data/powerbi/churn_scores.parquet`, `clv_scores.parquet`, `forecast.parquet`, `rfm_segments.parquet`
 
-### M4: Run copilot API (FastAPI)
+### M4: Ask-your-data API (FastAPI)
 
 ```bash
-.\.venv\Scripts\python -m retailpulse.copilot serve --host 127.0.0.1 --port 8000
+.\.venv\Scripts\python -m retailpulse.ask serve --host 127.0.0.1 --port 8000
 ```
 
-LLM configuration (OpenAI-compatible):
+Optional model endpoint (any OpenAI-compatible API):
 - `LLM_BASE_URL`
 - `LLM_API_KEY`
 - `LLM_MODEL`
 
-If unset, `POST /ask` falls back to offline templates (and says so in the response).
+If unset, `POST /ask` answers from built-in SQL templates and says so in the response.
 
 ### Real model metrics (from `reports/metrics.json`)
 

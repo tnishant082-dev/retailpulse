@@ -13,8 +13,7 @@ from retailpulse.etl.quality import run_quality
 
 
 def _repo_root() -> Path:
-    # src/retailpulse/etl/__main__.py -> repo root is 3 parents up
-    # (.../retailpulse/src/retailpulse/etl/__main__.py -> .../retailpulse)
+    # src/retailpulse/etl/__main__.py -> repo root
     return Path(__file__).resolve().parents[3]
 
 

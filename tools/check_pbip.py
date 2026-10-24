@@ -6,8 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-# Expected PBIR schema versions for the installed Power BI Desktop on this machine.
-# (Aligned to the known-working Olist PBIP project.)
+# PBIR schema versions that Power BI Desktop (2024+) opens without upgrade prompts.
 PBIR_SCHEMA_PAGES = (
     "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/pagesMetadata/1.0.0/schema.json"
 )

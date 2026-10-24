@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from retailpulse.copilot.guardrails import validate_sql
+from retailpulse.ask.guardrails import validate_sql
 
 KNOWN = {"fact_sales", "mart_monthly_kpis"}
 
