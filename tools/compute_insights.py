@@ -279,7 +279,7 @@ def compute(repo_root: Path) -> Insights:
     )
 
 
-def render_md(i: Insights) -> str:
+def to_markdown(i: Insights) -> str:
     champions = f"{i.champions_pct:.1%}" if i.champions_pct is not None else "n/a"
     high_risk = f"{i.high_risk_customers:,}" if i.high_risk_customers is not None else "n/a"
     at_risk = f"{i.revenue_at_risk:,.0f}" if i.revenue_at_risk is not None else "n/a"
@@ -323,7 +323,7 @@ def main() -> int:
     insights = compute(repo_root)
     out = repo_root / "reports" / "insights.md"
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(render_md(insights), encoding="utf-8")
+    out.write_text(to_markdown(insights), encoding="utf-8")
     print(f"Wrote {out}")
     return 0
 
