@@ -35,6 +35,7 @@ table mart_monthly_kpis
 		mode: import
 		source =
 			let
-				Source = Parquet.Document(File.Contents(DataFolder & "\\mart_monthly_kpis.parquet"))
+				Source = Parquet.Document(File.Contents(DataFolder & "\\mart_monthly_kpis.parquet")
+				)
 			in
 				Source

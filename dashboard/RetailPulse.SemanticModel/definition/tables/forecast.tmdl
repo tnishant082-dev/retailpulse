@@ -29,6 +29,7 @@ table forecast
 		mode: import
 		source =
 			let
-				Source = Parquet.Document(File.Contents(DataFolder & "\\forecast.parquet"))
+				Source = Parquet.Document(File.Contents(DataFolder & "\\forecast.parquet")
+				)
 			in
 				Source

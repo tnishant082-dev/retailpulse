@@ -29,6 +29,12 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
+PBIR_SCHEMA_PAGES = "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/pagesMetadata/1.0.0/schema.json"
+PBIR_SCHEMA_REPORT = "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/report/1.2.0/schema.json"
+PBIR_SCHEMA_PAGE = "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/1.3.0/schema.json"
+PBIR_SCHEMA_VISUAL = "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.4.0/schema.json"
+
+
 def _read_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -78,7 +84,7 @@ def _textbox_visual(
     tab: int,
 ) -> dict:
     return {
-        "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+        "$schema": PBIR_SCHEMA_VISUAL,
         "name": name,
         "position": {"x": x, "y": y, "z": z, "width": w, "height": h, "tabOrder": tab},
         "visual": {
@@ -126,7 +132,7 @@ def _card_visual(
     tab: int,
 ) -> dict:
     return {
-        "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+        "$schema": PBIR_SCHEMA_VISUAL,
         "name": name,
         "position": {"x": x, "y": y, "z": z, "width": w, "height": h, "tabOrder": tab},
         "visual": {
@@ -152,7 +158,7 @@ def _slicer_visual(
     tab: int,
 ) -> dict:
     return {
-        "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+        "$schema": PBIR_SCHEMA_VISUAL,
         "name": name,
         "position": {"x": x, "y": y, "z": z, "width": w, "height": h, "tabOrder": tab},
         "visual": {
@@ -177,7 +183,7 @@ def _line_visual(
     tab: int,
 ) -> dict:
     return {
-        "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+        "$schema": PBIR_SCHEMA_VISUAL,
         "name": name,
         "position": {"x": x, "y": y, "z": z, "width": w, "height": h, "tabOrder": tab},
         "visual": {
@@ -207,7 +213,7 @@ def _bar_visual(
     tab: int,
 ) -> dict:
     return {
-        "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+        "$schema": PBIR_SCHEMA_VISUAL,
         "name": name,
         "position": {"x": x, "y": y, "z": z, "width": w, "height": h, "tabOrder": tab},
         "visual": {
@@ -239,7 +245,7 @@ def _table_visual(
         _proj_measure("_Measures", m) for m in measures
     ]
     return {
-        "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+        "$schema": PBIR_SCHEMA_VISUAL,
         "name": name,
         "position": {"x": x, "y": y, "z": z, "width": w, "height": h, "tabOrder": tab},
         "visual": {
@@ -336,12 +342,17 @@ def _tmdl_measures_table(measures: list[tuple[str, str, str]]) -> str:
         [
             "\tcolumn Dummy",
             "\t\tisHidden",
+            "\t\tdataType: string",
             "\t\tsummarizeBy: none",
-            "\t\tsourceColumn: [Dummy]",
+            "\t\tsourceColumn: Dummy",
             "",
-            "\tpartition _Measures = calculated",
+            "\tpartition _Measures = m",
             "\t\tmode: import",
-            '\t\tsource = ROW("Dummy", BLANK())',
+            "\t\tsource =",
+            "\t\t\tlet",
+            "\t\t\t\tSource = #table({\"Dummy\"}, {{null}})",
+            "\t\t\tin",
+            "\t\t\t\tSource",
             "",
         ]
     )
@@ -404,19 +415,13 @@ def generate(repo_root: Path) -> None:
     _write_json(
         report_dir / "definition" / "report.json",
         {
-            "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/report/3.3.0/schema.json",
-            "themeCollection": {
-                "baseTheme": {
-                    "name": "CY25SU11",
-                    "reportVersionAtImport": {
-                        "visual": "2.10.0",
-                        "report": "3.4.0",
-                        "page": "2.3.1",
-                    },
-                    "type": "SharedResources",
-                }
+            "$schema": PBIR_SCHEMA_REPORT,
+            "layoutOptimization": "None",
+            "settings": {
+                "useStylableVisualContainerHeader": True,
+                "exportDataMode": "AllowSummarized",
+                "defaultDrillFilterOtherVisuals": True,
             },
-            "settings": {"useEnhancedTooltips": False},
         },
     )
 
@@ -440,7 +445,7 @@ def generate(repo_root: Path) -> None:
     _write_json(
         report_dir / "definition" / "pages" / "pages.json",
         {
-            "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/pagesMetadata/2.0.0/schema.json",
+            "$schema": PBIR_SCHEMA_PAGES,
             "pageOrder": page_names,
             "activePageName": page_names[0],
         },
@@ -454,7 +459,7 @@ def generate(repo_root: Path) -> None:
         _write_json(
             page_dir / "page.json",
             {
-                "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/2.1.0/schema.json",
+                "$schema": PBIR_SCHEMA_PAGE,
                 "name": page,
                 "displayName": title,
                 "displayOption": "FitToPage",

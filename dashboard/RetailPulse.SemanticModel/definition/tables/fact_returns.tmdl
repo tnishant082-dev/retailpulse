@@ -49,6 +49,7 @@ table fact_returns
 		mode: import
 		source =
 			let
-				Source = Parquet.Document(File.Contents(DataFolder & "\\fact_returns.parquet"))
+				Source = Parquet.Document(File.Contents(DataFolder & "\\fact_returns.parquet")
+				)
 			in
 				Source

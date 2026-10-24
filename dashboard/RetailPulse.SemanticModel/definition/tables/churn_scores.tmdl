@@ -24,6 +24,7 @@ table churn_scores
 		mode: import
 		source =
 			let
-				Source = Parquet.Document(File.Contents(DataFolder & "\\churn_scores.parquet"))
+				Source = Parquet.Document(File.Contents(DataFolder & "\\churn_scores.parquet")
+				)
 			in
 				Source

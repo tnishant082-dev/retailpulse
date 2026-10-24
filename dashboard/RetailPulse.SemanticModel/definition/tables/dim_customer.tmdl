@@ -24,6 +24,7 @@ table dim_customer
 		mode: import
 		source =
 			let
-				Source = Parquet.Document(File.Contents(DataFolder & "\\dim_customer.parquet"))
+				Source = Parquet.Document(File.Contents(DataFolder & "\\dim_customer.parquet")
+				)
 			in
 				Source

@@ -186,9 +186,14 @@ table _Measures
 
 	column Dummy
 		isHidden
+		dataType: string
 		summarizeBy: none
-		sourceColumn: [Dummy]
+		sourceColumn: Dummy
 
-	partition _Measures = calculated
+	partition _Measures = m
 		mode: import
-		source = ROW("Dummy", BLANK())
+		source =
+			let
+				Source = #table({"Dummy"}, {{null}})
+			in
+				Source

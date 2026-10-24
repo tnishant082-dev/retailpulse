@@ -48,6 +48,7 @@ table dim_date
 		mode: import
 		source =
 			let
-				Source = Parquet.Document(File.Contents(DataFolder & "\\dim_date.parquet"))
+				Source = Parquet.Document(File.Contents(DataFolder & "\\dim_date.parquet")
+				)
 			in
 				Source

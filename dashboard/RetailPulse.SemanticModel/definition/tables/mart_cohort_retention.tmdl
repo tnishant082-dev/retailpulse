@@ -26,6 +26,7 @@ table mart_cohort_retention
 		mode: import
 		source =
 			let
-				Source = Parquet.Document(File.Contents(DataFolder & "\\mart_cohort_retention.parquet"))
+				Source = Parquet.Document(File.Contents(DataFolder & "\\mart_cohort_retention.parquet")
+				)
 			in
 				Source

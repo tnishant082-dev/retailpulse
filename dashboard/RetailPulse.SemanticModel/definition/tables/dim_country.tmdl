@@ -9,6 +9,7 @@ table dim_country
 		mode: import
 		source =
 			let
-				Source = Parquet.Document(File.Contents(DataFolder & "\\dim_country.parquet"))
+				Source = Parquet.Document(File.Contents(DataFolder & "\\dim_country.parquet")
+				)
 			in
 				Source

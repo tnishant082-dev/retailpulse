@@ -29,6 +29,7 @@ table mart_product_abc
 		mode: import
 		source =
 			let
-				Source = Parquet.Document(File.Contents(DataFolder & "\\mart_product_abc.parquet"))
+				Source = Parquet.Document(File.Contents(DataFolder & "\\mart_product_abc.parquet")
+				)
 			in
 				Source

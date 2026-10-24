@@ -49,6 +49,7 @@ table rfm_segments
 		mode: import
 		source =
 			let
-				Source = Parquet.Document(File.Contents(DataFolder & "\\rfm_segments.parquet"))
+				Source = Parquet.Document(File.Contents(DataFolder & "\\rfm_segments.parquet")
+				)
 			in
 				Source
